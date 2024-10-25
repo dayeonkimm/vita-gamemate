@@ -5,11 +5,13 @@ from rest_framework.views import APIView
 
 from game_requests.models import GameRequest
 from game_requests.serializers.game_request_serializer import (
+    GameRequestAcceptSerializer,
     GameRequestCreateSerializer,
     GameRequestOrderedSerializer,
     GameRequestReceivedSerializer,
 )
 from game_requests.utils import GameRequestPagination
+from mates.models import MateGameInfo
 from users.exceptions import (
     InvalidAuthorizationHeader,
     MissingAuthorizationHeader,
@@ -25,7 +27,7 @@ class GameRequestCreateAPIView(APIView):
 
     def post(self, request, user_id):
         try:
-            mate = User.objects.get(id=user_id, is_mate=True)
+            mate = User.objects.get_mate_user(user_id=user_id, is_mate=True)
         except User.DoesNotExist:
             return Response({"error": "사용자를 찾지 못했습니다."}, status=status.HTTP_404_NOT_FOUND)
 
@@ -39,6 +41,11 @@ class GameRequestCreateAPIView(APIView):
 
         if user_id == user.id:
             return Response({"error": "자신에게 의뢰 할 수 없습니다."}, status=status.HTTP_400_BAD_REQUEST)
+
+        game_id = request.data.get("game_id")
+
+        if not MateGameInfo.objects.get_mate_game_info_from_id_and_game_id(mate_id=mate.id, game_id=game_id):
+            return Response({"error": "해당 메이트에게 등록된 해당 게임이 없습니다."})
 
         serializer = GameRequestCreateSerializer(data=request.data)
 
@@ -94,3 +101,39 @@ class GameRequestReceivedAPIView(APIView):
         serializer = GameRequestReceivedSerializer(paginated_requests, many=True)
 
         return paginator.get_paginated_response(serializer.data)
+
+
+class GameRequestAcceptAPIView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def post(self, request, game_request_id):
+        authorization_header = request.headers.get("Authorization")
+
+        try:
+            mate = UserService.get_user_from_token(authorization_header)
+
+        except (MissingAuthorizationHeader, InvalidAuthorizationHeader, TokenMissing, UserNotFound) as e:
+            return Response({"error": str(e)}, status=e.status_code)
+
+        game_request = GameRequest.objects.get(id=game_request_id)
+
+        if not game_request.id:
+            return Response({"error": "해당하는 게임 의뢰를 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
+
+        if not game_request.mate.id == mate.id:
+            return Response({"error": "메이트 사용자가 일치 하지 않습니다."}, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = GameRequestAcceptSerializer(data=request.data)
+
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        is_accept = serializer.validated_data.get("is_accept")
+
+        if is_accept is False:
+            GameRequest.objects.reject(game_request)
+            return Response({"message": "의뢰를 거절하였습니다."}, status=status.HTTP_200_OK)
+
+        if is_accept is True:
+            GameRequest.objects.accept(game_request)
+            return Response({"message": "의뢰를 수락했습니다."}, status=status.HTTP_200_OK)

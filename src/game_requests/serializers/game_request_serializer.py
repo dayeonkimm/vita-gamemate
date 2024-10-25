@@ -61,3 +61,7 @@ class GameRequestReceivedSerializer(serializers.ModelSerializer):
             "request_date",
             "request_amount",
         ]
+
+
+class GameRequestAcceptSerializer(serializers.Serializer):
+    is_accept = serializers.BooleanField()

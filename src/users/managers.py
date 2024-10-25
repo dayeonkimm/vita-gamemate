@@ -37,3 +37,9 @@ class UserManager(BaseUserManager):
             return self.get(nickname=user_nickname)
         except self.model.DoesNotExist:
             raise UserNotFound()
+
+    def get_mate_user(self, user_id: int, is_mate: bool):
+        try:
+            return self.get(id=user_id, is_mate=is_mate)
+        except self.model.DoesNotExist:
+            raise UserNotFound()

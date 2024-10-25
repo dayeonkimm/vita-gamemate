@@ -37,4 +37,4 @@ class GameRequestModelTest(TestCase):
         self.assertEqual(game_request.mate, self.mate)
         self.assertEqual(game_request.price, 1000)
         self.assertEqual(game_request.amount, 2)
-        self.assertTrue(game_request.status)
+        self.assertFalse(game_request.status)
