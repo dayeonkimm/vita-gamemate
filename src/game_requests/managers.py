@@ -14,6 +14,12 @@ class GameRequestManager(models.Manager):
 
         return game_request
 
+    def get_game_request_from_id(self, id):
+        try:
+            return self.get(id=id)
+        except self.model.DoesNotExist:
+            raise self.model.DoesNotExist
+
     def accept(self, game_request):
         game_request.status = True
         game_request.save()

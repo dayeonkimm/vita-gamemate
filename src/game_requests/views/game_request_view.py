@@ -28,7 +28,8 @@ class GameRequestCreateAPIView(APIView):
     def post(self, request, user_id):
         try:
             mate = User.objects.get_mate_user(user_id=user_id, is_mate=True)
-        except User.DoesNotExist:
+
+        except UserNotFound:
             return Response({"error": "사용자를 찾지 못했습니다."}, status=status.HTTP_404_NOT_FOUND)
 
         authorization_header = request.headers.get("Authorization")
@@ -45,7 +46,7 @@ class GameRequestCreateAPIView(APIView):
         game_id = request.data.get("game_id")
 
         if not MateGameInfo.objects.get_mate_game_info_from_id_and_game_id(mate_id=mate.id, game_id=game_id):
-            return Response({"error": "해당 메이트에게 등록된 해당 게임이 없습니다."})
+            return Response({"error": "해당 메이트에게 등록된 해당 게임이 없습니다."}, status=status.HTTP_400_BAD_REQUEST)
 
         serializer = GameRequestCreateSerializer(data=request.data)
 
@@ -115,13 +116,17 @@ class GameRequestAcceptAPIView(APIView):
         except (MissingAuthorizationHeader, InvalidAuthorizationHeader, TokenMissing, UserNotFound) as e:
             return Response({"error": str(e)}, status=e.status_code)
 
-        game_request = GameRequest.objects.get(id=game_request_id)
+        try:
+            game_request = GameRequest.objects.get_game_request_from_id(id=game_request_id)
 
-        if not game_request.id:
+        except GameRequest.DoesNotExist:
             return Response({"error": "해당하는 게임 의뢰를 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
 
         if not game_request.mate.id == mate.id:
             return Response({"error": "메이트 사용자가 일치 하지 않습니다."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if game_request.status is True:
+            return Response({"error": "이미 해당하는 게임 의뢰를 수락했습니다."}, status=status.HTTP_400_BAD_REQUEST)
 
         serializer = GameRequestAcceptSerializer(data=request.data)
 
