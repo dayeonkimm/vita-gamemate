@@ -18,3 +18,9 @@ class MateGameInfoManager(models.Manager):
         user.save()
 
         return mategameinfo
+
+    def get_mate_game_info_from_id_and_game_id(self, mate_id: int, game_id: int):
+        try:
+            return self.model.objects.get(user_id=mate_id, game_id=game_id)
+        except self.model.DoesNotExist:
+            return None
