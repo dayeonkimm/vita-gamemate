@@ -23,10 +23,17 @@ class ReviewListViewTest(TestCase):
         self.game_request = GameRequest.objects.create(
             user_id=self.user1.id, mate_id=self.user2.id, game=self.game, price=3000  # user_id에 user1 할당  # mate_id에 user2 할당
         )
-        self.game_request.title = "게임 목록 조회"
 
-        Review.objects.create(game_request=self.game_request, rating=5.0, content="와 진짜 재밌다", created_at="2024-10-17T15:35:42Z")
-        Review.objects.create(game_request=self.game_request, rating=1.0, content="와 진짜 노잼", created_at="2024-10-17T15:35:42Z")
+        # 한 게밍 당 한 리뷰만 생성할 수 있기 때문에 개별적으로 생성
+        # 첫 번째 GameRequest 생성
+        self.game_request_1 = GameRequest.objects.create(user_id=self.user1.id, mate_id=self.user2.id, game=self.game, price=3000)
+        self.game_request_1.title = "게임 요청 1"
+        Review.objects.create(game_request=self.game_request_1, rating=5.0, content="와 진짜 재밌다")
+
+        # 두 번째 GameRequest 생성
+        self.game_request_2 = GameRequest.objects.create(user_id=self.user1.id, mate_id=self.user2.id, game=self.game, price=4000)
+        self.game_request_2.title = "게임 요청 2"
+        Review.objects.create(game_request=self.game_request_2, rating=1.0, content="와 진짜 노잼")
 
     def test_review_list_view(self):
         # When: 리뷰 목록을 요청했을 때
@@ -55,12 +62,8 @@ class GameReviewCreateAPIViewTest(APITestCase):
             mate_id=self.user2.id,
             game=self.game,
             price=3000,
-            # user_id에 user1 할당  # mate_id에 user2 할당
         )
         self.game_request.title = "게임 목록 조회"
-
-        Review.objects.create(game_request=self.game_request, rating=5.0, content="와 진짜 재밌다", created_at="2024-10-17T15:35:42Z")
-        Review.objects.create(game_request=self.game_request, rating=1.0, content="와 진짜 노잼", created_at="2024-10-17T15:35:42Z")
 
         self.refresh = RefreshToken.for_user(self.user1)
 
@@ -70,12 +73,21 @@ class GameReviewCreateAPIViewTest(APITestCase):
     def test_create_review_success(self):  # 성공
         # When: 올바른 데이터로 리뷰를 생성 요청
 
-        data = {"game_request": self.game_request.id, "rating": 5.0, "content": "아 짱 좋아요"}
-        response = self.client.post(self.url, data, format="json", headers={"Authorization": f"Bearer {str(self.refresh.access_token)}"})
+        new_game_request = GameRequest.objects.create(
+            user_id=self.user1.id,
+            mate_id=self.user2.id,
+            game=self.game,
+            price=3000,
+        )
+
+        # When: 올바른 데이터로 리뷰를 생성 요청
+        data = {"game_request": new_game_request.id, "rating": 5.0, "content": "아 짱 좋아요"}
+
+        response = self.client.post(self.url, data, format="json", HTTP_AUTHORIZATION=f"Bearer {str(self.refresh.access_token)}")
 
         # Then: 성공적으로 리뷰가 생성되고 201 응답을 받아야 함
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(Review.objects.count(), 3)  # 리뷰가 하나 생성되어야 함
+        self.assertEqual(Review.objects.count(), 1)  # 리뷰가 하나 생성되어야 함
         self.assertEqual(response.data["content"], "아 짱 좋아요")  # 내용 확인
 
     def test_create_review_missing_authorization(self):  # 성공
