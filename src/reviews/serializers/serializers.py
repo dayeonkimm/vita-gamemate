@@ -24,6 +24,16 @@ class AllReviewSerializer(serializers.ModelSerializer):
         model = Review
         fields = ["game_request", "rating", "content", "created_at"]
 
+    def validate(self, data):  # 게임 요청이 사용자와 연결 되어있는지 확인하는 유호성 검사
+        request = self.context.get("request")
+        user = request.user
+        game_request = data["game_request"]
+
+        if game_request.user != user:
+            raise serializers.ValidationError("본인이 의뢰한 게임에 대해서만 리뷰를 작성할 수 있습니다.")
+
+        return data
+
     def validate_rating(self, value):
         if value < 1.0 or value > 5.0:
             raise serializers.ValidationError("평점은 1.0에서 5.0 사이여야 합니다.")
