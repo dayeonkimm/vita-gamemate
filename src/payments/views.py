@@ -100,4 +100,4 @@ class UserPaymentListView(generics.ListAPIView):
         except (MissingAuthorizationHeader, InvalidAuthorizationHeader, TokenMissing, UserNotFound) as e:
             return Response({"message": str(e)}, status=e.status_code)
 
-        return Payment.objects.filter(user=user).order_by('-requested_at')
+        return Payment.objects.filter(user=user).order_by("-requested_at")
