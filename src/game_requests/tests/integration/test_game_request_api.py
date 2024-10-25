@@ -36,10 +36,18 @@ class GameRequestAPITest(APITestCase):
             level="챌린저",
             request_price=1000,
         )
+        self.game_request = GameRequest.objects.create(
+            game_id=self.game.id,
+            user_id=self.user.id,
+            mate_id=self.mate.id,
+            price=100,
+            amount=1,
+        )
 
         self.url_create = reverse("game-request-create", kwargs={"user_id": self.mate.id})
         self.url_ordered = reverse("ordered-game-request")
         self.url_received = reverse("received-game-request")
+        self.url_accept = reverse("accept-game-request", kwargs={"game_request_id": self.game_request.id})
 
         self.token = str(TokenObtainPairSerializer.get_token(self.user).access_token)
         self.client.credentials(HTTP_AUTHORIZATION="Bearer " + self.token)
@@ -132,7 +140,7 @@ class GameRequestAPITest(APITestCase):
         response = self.client.get(self.url_ordered)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data["results"]), 0)
+        self.assertEqual(len(response.data["results"]), 1)
 
     def test_received_game_requests_no_requests(self):
         response = self.client.get(self.url_received)
