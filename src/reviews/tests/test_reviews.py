@@ -68,7 +68,7 @@ class GameReviewCreateAPIViewTest(APITestCase):
         self.refresh = RefreshToken.for_user(self.user1)
 
         # URL 정의
-        self.url = reverse("review-write", args=[self.game_request.id])
+        self.url = reverse("review-write")
 
     def test_create_review_success(self):  # 성공
         # When: 올바른 데이터로 리뷰를 생성 요청
