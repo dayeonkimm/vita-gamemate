@@ -73,6 +73,7 @@ class GameRequestAPITest(APITestCase):
             },
         )
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(response.data, {"error": "사용자를 찾지 못했습니다."})
 
     def test_create_game_request_to_self(self):
         MateGameInfo.objects.create(
@@ -91,6 +92,18 @@ class GameRequestAPITest(APITestCase):
             },
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_create_game_request_no_game(self):
+        response = self.client.post(
+            reverse("game-request-create", kwargs={"user_id": self.mate.id}),
+            {
+                "game_id": 2,
+                "price": 500,
+                "amount": 1,
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data, {"error": "해당 메이트에게 등록된 해당 게임이 없습니다."})
 
     def test_create_game_request_invalid_data(self):
         response = self.client.post(
@@ -148,6 +161,100 @@ class GameRequestAPITest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data["results"]), 0)
 
+    def test_accept_game_requests_success(self):
+        self.token = str(TokenObtainPairSerializer.get_token(self.mate).access_token)
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + self.token)
+
+        GameRequest.objects.create(
+            user_id=self.user.id,
+            mate_id=self.mate.id,
+            game_id=self.game.id,
+            price=500,
+            amount=1,
+        )
+
+        response = self.client.post(self.url_accept, {"is_accept": True})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data, {"message": "의뢰를 수락했습니다."})
+
+    def test_reject_game_requests_success(self):
+        self.token = str(TokenObtainPairSerializer.get_token(self.mate).access_token)
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + self.token)
+
+        GameRequest.objects.create(
+            user_id=self.user.id,
+            mate_id=self.mate.id,
+            game_id=self.game.id,
+            price=500,
+            amount=1,
+        )
+
+        response = self.client.post(self.url_accept, {"is_accept": False})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data, {"message": "의뢰를 거절하였습니다."})
+
+    def test_accept_api_game_requests_not_found_game_request(self):
+        self.token = str(TokenObtainPairSerializer.get_token(self.mate).access_token)
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + self.token)
+
+        self.url_accept = reverse("accept-game-request", kwargs={"game_request_id": 20})
+        response = self.client.post(self.url_accept, {"is_accept": True})
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(response.data, {"error": "해당하는 게임 의뢰를 찾을 수 없습니다."})
+
+    def test_accept_api_game_requests_already_accepted_game_request(self):
+        self.token = str(TokenObtainPairSerializer.get_token(self.mate).access_token)
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + self.token)
+
+        GameRequest.objects.create(
+            user_id=self.user.id,
+            mate_id=self.mate.id,
+            game_id=self.game.id,
+            price=500,
+            amount=1,
+            status=True,
+        )
+
+        self.url_accept = reverse("accept-game-request", kwargs={"game_request_id": 2})
+        response = self.client.post(self.url_accept, {"is_accept": True})
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data, {"error": "이미 해당하는 게임 의뢰를 수락했습니다."})
+
+    def test_accept_api_game_requests_not_match_mate_id(self):
+        self.token = str(TokenObtainPairSerializer.get_token(self.mate).access_token)
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + self.token)
+
+        self.mate2 = User.objects.create_user(
+            nickname="ma1te임",
+            email="user2@example.2com",
+            gender="female",
+            social_provider="google",
+        )
+
+        game_request = GameRequest.objects.create(
+            user_id=self.user.id,
+            mate_id=self.mate2.id,
+            game_id=self.game.id,
+            price=500,
+            amount=1,
+            status=True,
+        )
+
+        self.url_accept = reverse("accept-game-request", kwargs={"game_request_id": game_request.id})
+        response = self.client.post(self.url_accept, {"is_accept": True})
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data, {"error": "메이트 사용자가 일치 하지 않습니다."})
+
+    def test_accept_api_game_requests_not_valid_serializer(self):
+        self.token = str(TokenObtainPairSerializer.get_token(self.mate).access_token)
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + self.token)
+
+        response = self.client.post(self.url_accept, {"is_accept": 123})
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
     @patch("users.services.user_service.UserService.get_user_from_token")
     def test_missing_authorization_header(self, mock_get_user_from_token):
         mock_get_user_from_token.side_effect = MissingAuthorizationHeader()
@@ -158,4 +265,7 @@ class GameRequestAPITest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
         response = self.client.get(self.url_ordered, {})
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+        response = self.client.post(self.url_accept, {})
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
