@@ -53,7 +53,7 @@ class ReviewAPITestCase(TestCase):
         # 추가된 필드 확인 (author_id, author_nickname, maet_nickname)
         self.assertEqual(response.data["results"][0]["author_id"], self.user.id)
         self.assertEqual(response.data["results"][0]["author_nickname"], "사용자임")
-        self.assertEqual(response.data["results"][0]["maet_nickname"], "mate임")
+        self.assertEqual(response.data["results"][0]["mate_nickname"], "mate임")
 
     def test_user_game_review_list(self):
         # 특정 사용자의 특정 게임에 대한 리뷰 목록 조회 테스트
@@ -72,7 +72,7 @@ class ReviewAPITestCase(TestCase):
         # 추가된 필드 확인 (author_id, author_nickname, maet_nickname)
         self.assertEqual(response.data["results"][0]["author_id"], self.user.id)
         self.assertEqual(response.data["results"][0]["author_nickname"], "사용자임")
-        self.assertEqual(response.data["results"][0]["maet_nickname"], "mate임")
+        self.assertEqual(response.data["results"][0]["mate_nickname"], "mate임")
 
         # 페이지네이션 확인 (리뷰가 1개이므로 페이지네이션이 없을 것)
         self.assertIsNone(response.data.get("next"))
