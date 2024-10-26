@@ -45,8 +45,6 @@ class ReviewAPITestCase(TestCase):
         response = self.client.get(url, data={"page": 1})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-        # 응답 데이터 출력 (디버깅용)
-        print(response.data)
 
         # 응답 데이터 확인 (리뷰가 1개 있는지 확인)
         self.assertEqual(response.data["count"], 1)
