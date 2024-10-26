@@ -45,7 +45,6 @@ class ReviewAPITestCase(TestCase):
         response = self.client.get(url, data={"page": 1})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-
         # 응답 데이터 확인 (리뷰가 1개 있는지 확인)
         self.assertEqual(response.data["count"], 1)
         self.assertEqual(len(response.data["results"]), 1)
@@ -76,5 +75,5 @@ class ReviewAPITestCase(TestCase):
         self.assertEqual(response.data["results"][0]["maet_nickname"], "mate임")
 
         # 페이지네이션 확인 (리뷰가 1개이므로 페이지네이션이 없을 것)
-        self.assertIsNone(response.data.get("next"))  # 다음 페이지 링크가 없어야 함
-        self.assertIsNone(response.data.get("previous"))  # 이전 페이지 링크가 없어야 함
+        self.assertIsNone(response.data.get("next"))
+        self.assertIsNone(response.data.get("previous"))
