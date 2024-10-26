@@ -45,30 +45,18 @@ class ReviewAPITestCase(TestCase):
         response = self.client.get(url, data={"page": 1})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
+        # 응답 데이터 출력 (디버깅용)
+        print(response.data)
+
         # 응답 데이터 확인 (리뷰가 1개 있는지 확인)
         self.assertEqual(response.data["count"], 1)
         self.assertEqual(len(response.data["results"]), 1)
         self.assertEqual(response.data["results"][0]["content"], "리뷰 내용 1")
 
-    # def test_user_review_list(self):
-    #     # 특정 사용자의 전체 리뷰 목록 조회 테스트
-    #
-    #     url = reverse("review-list", kwargs={"user_id": self.user.id})
-    #
-    #     response = self.client.get(url, query_params={"page": 1})
-    #
-    #     # 디버그: 응답 데이터를 출력하여 확인
-    #     print(f"응답 데이터: {response.data}")
-    #
-    #     # 200 응답 상태 코드 확인
-    #     self.assertEqual(response.status_code, status.HTTP_200_OK)
-    #
-    #     # 응답 데이터 확인
-    #     self.assertEqual(response.data["count"], 30)
-    #     self.assertEqual(len(response.data["results"]), 10)
-    #     self.assertIn("next", response.data)
-    #     self.assertIn("previous", response.data)
-    #     self.assertIsNotNone(response.data["next"])
+        # 추가된 필드 확인 (author_id, author_nickname, maet_nickname)
+        self.assertEqual(response.data["results"][0]["author_id"], self.user.id)
+        self.assertEqual(response.data["results"][0]["author_nickname"], "사용자임")
+        self.assertEqual(response.data["results"][0]["maet_nickname"], "mate임")
 
     def test_user_game_review_list(self):
         # 특정 사용자의 특정 게임에 대한 리뷰 목록 조회 테스트
@@ -83,6 +71,11 @@ class ReviewAPITestCase(TestCase):
         # 응답 데이터 확인 (리뷰는 1개만 있어야 함)
         self.assertEqual(response.data["count"], 1)
         self.assertEqual(len(response.data["results"]), 1)
+
+        # 추가된 필드 확인 (author_id, author_nickname, maet_nickname)
+        self.assertEqual(response.data["results"][0]["author_id"], self.user.id)
+        self.assertEqual(response.data["results"][0]["author_nickname"], "사용자임")
+        self.assertEqual(response.data["results"][0]["maet_nickname"], "mate임")
 
         # 페이지네이션 확인 (리뷰가 1개이므로 페이지네이션이 없을 것)
         self.assertIsNone(response.data.get("next"))  # 다음 페이지 링크가 없어야 함

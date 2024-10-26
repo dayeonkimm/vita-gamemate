@@ -6,10 +6,16 @@ from reviews.models import Review
 
 class ReviewSerializer(serializers.ModelSerializer):
     game_request_id = serializers.IntegerField(source="game_request.id", read_only=True)
+    author_id = serializers.SerializerMethodField()
+    author_nickname = serializers.CharField(source="game_request.user.nickname", read_only=True)
+    maet_nickname = serializers.CharField(source="game_request.mate.nickname", read_only=True)
 
     class Meta:
         model = Review
-        fields = ["game_request_id", "rating", "content", "created_at"]
+        fields = ["game_request_id", "author_id", "author_nickname", "maet_nickname", "rating", "content", "created_at"]
+
+    def get_author_id(self, obj):
+        return obj.game_request.user.id if obj.game_request and obj.game_request.user else None
 
 
 class PaginatedReviewSerializer(serializers.Serializer):
