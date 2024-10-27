@@ -73,11 +73,13 @@ class TossPaymentView(generics.GenericAPIView):
                     requested_at=requested_at,
                     approved_at=approved_at,
                 )
+                
+                payment_data = PaymentSerializer(payment).data
 
                 return Response(
                     {
                         "title": "결제 성공",
-                        "payment": PaymentSerializer(payment).data,
+                        "payment": payment_data,
                     },
                     status=status.HTTP_200_OK,
                 )
@@ -101,3 +103,9 @@ class UserPaymentListView(generics.ListAPIView):
             return Response({"message": str(e)}, status=e.status_code)
 
         return Payment.objects.filter(user=user).order_by("-requested_at")
+
+    def get(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
