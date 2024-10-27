@@ -73,7 +73,7 @@ class TossPaymentView(generics.GenericAPIView):
                     requested_at=requested_at,
                     approved_at=approved_at,
                 )
-                
+
                 payment_data = PaymentSerializer(payment).data
 
                 return Response(
@@ -108,4 +108,3 @@ class UserPaymentListView(generics.ListAPIView):
         queryset = self.get_queryset()
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
-
