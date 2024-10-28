@@ -1,5 +1,7 @@
-from channels.db import database_sync_to_async
+import logging
+
 from asgiref.sync import sync_to_async
+from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from django.utils import timezone
 
@@ -9,14 +11,11 @@ from users.exceptions import (
     TokenMissing,
     UserNotFound,
 )
-from users.services.user_service import UserService
-
 from users.managers import UserManager
 from users.models.user_model import User
+from users.services.user_service import UserService
 
 from .models import ChatRoom, Message
-
-import logging
 
 logger = logging.getLogger("channels")
 
@@ -35,7 +34,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
         except (MissingAuthorizationHeader, InvalidAuthorizationHeader, TokenMissing, UserNotFound):
             await self.close()
-        
+
         logger.debug(f"WebSocket connection attempt for room_id: {self.scope['url_route']['kwargs'].get('room_id')}")
         try:
             self.room_id = self.scope["url_route"]["kwargs"]["room_id"]  # URL 경로에서 방 ID를 추출
@@ -80,9 +79,9 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
             # 메시지를 전체 그룹에 전송
             await self.channel_layer.group_send(
-                group_name, {"type": "chat_message", "message": message, "sender_nickname": sender_nickname}
+                group_name, {"type": "chat_message", "message": message, "sender_nickname": sender_nickname, "timestamp": message_obj.created_at.isoformat()}
             )
-            
+
             # 채팅 리스트 업데이트
             await self.channel_layer.group_send(
                 "chat_list",
@@ -91,8 +90,8 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                     "room_id": self.room_id,
                     "last_message": message,
                     "sender_nickname": sender_nickname,
-                    "timestamp": message_obj.created_at.isoformat()
-                }
+                    "timestamp": message_obj.created_at.isoformat(),
+                },
             )
 
         except Exception as e:
@@ -104,9 +103,10 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             # 이벤트에서 메시지와 발신자 닉네임을 추출
             message = event["message"]
             sender_nickname = event["sender_nickname"]
+            timestamp = event["timestamp"]
 
             # 추출된 메시지와 발신자 닉네임을 JSON으로 전송
-            await self.send_json({"message": message, "sender_nickname": sender_nickname})
+            await self.send_json({"message": message, "sender_nickname": sender_nickname, "timestamp": timestamp})
         except Exception as e:
             await self.send_json({"error": "메시지 전송 실패"})
 
@@ -136,12 +136,12 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
     def check_room_exists(self, room_id):
         # 주어진 ID로 채팅방이 존재하는지 확인
         return ChatRoom.objects.filter(id=room_id).exists()
-    
+
     @sync_to_async
     def get_user_from_access_token(self, access_token):
         return UserService.get_user_from_access_token(access_token)
-    
-    
+
+
 class ChatListConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self):
         access_token = self.scope["query_string"].decode("utf-8").split("token=")[-1]
@@ -154,7 +154,7 @@ class ChatListConsumer(AsyncJsonWebsocketConsumer):
 
         except (MissingAuthorizationHeader, InvalidAuthorizationHeader, TokenMissing, UserNotFound):
             await self.close()
-        
+
         await self.channel_layer.group_add("chat_list", self.channel_name)
         await self.accept()
         logger.debug("WebSocket connection accepted for chat list")
@@ -162,13 +162,13 @@ class ChatListConsumer(AsyncJsonWebsocketConsumer):
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard("chat_list", self.channel_name)
         logger.debug(f"WebSocket disconnected from chat list with code: {close_code}")
-    
+
     async def receive_json(self, content):
         logger.debug(f"Received content in chat list: {content}")
 
     async def chat_list_update(self, event):
         await self.send_json(event)
-        
+
     @sync_to_async
     def get_user_from_access_token(self, access_token):
         return UserService.get_user_from_access_token(access_token)
