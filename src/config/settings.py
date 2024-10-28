@@ -253,7 +253,7 @@ LOGGING = {
     },
     "handlers": {
         "console": {
-            "level": "INFO",
+            "level": "DEBUG",
             "filters": ["require_debug_true"],
             "class": "logging.StreamHandler",
         },
@@ -272,6 +272,11 @@ LOGGING = {
         "django.server": {
             "handlers": ["django.server"],
             "level": "INFO",
+            "propagate": False,
+        },
+        "channels": {
+            "handlers": ["console"],
+            "level": "DEBUG",
             "propagate": False,
         },
     },
