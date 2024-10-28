@@ -4,6 +4,7 @@ from django.http import Http404
 from django.utils import timezone
 from rest_framework import generics, status
 from rest_framework.exceptions import ValidationError
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -30,9 +31,12 @@ class ChatRoomCreateView(generics.CreateAPIView):
 
         existing_chatroom = self.get_existing_chatroom(main_user, other_user)
         if existing_chatroom:
+            Message.objects.create(room=existing_chatroom, sender=other_user, text=f"안녕하세요 {other_user.nickname}입니다")
             return self.handle_existing_chatroom(existing_chatroom, other_user)
 
-        return self.create_new_chatroom(main_user, other_user)
+        new_chatroom = self.create_new_chatroom(main_user, other_user)
+        Message.objects.create(room=existing_chatroom, sender=other_user, text=f"반갑습니다 {other_user.nickname}입니다")
+        return new_chatroom
 
     def get_user_from_token(self):
         authorization_header = self.request.headers.get("Authorization")
@@ -103,7 +107,7 @@ class ChatRoomListView(generics.ListAPIView):
                 other_user_id=Subquery(other_user.values("user__id")[:1]),
                 other_user_profile_image=Subquery(other_user.values("user__profile_image")[:1]),
             )
-            .order_by("-updated_at")
+            .order_by("-latest_message_time")
         )
 
     def get_user_from_token(self):
@@ -114,9 +118,16 @@ class ChatRoomListView(generics.ListAPIView):
             raise ValidationError({"message": str(e)})
 
 
+class MessagePagination(PageNumberPagination):
+    page_size = 20
+    page_size_query_param = "page_size"
+    max_page_size = 100
+
+
 class MessageListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = MessageSerializer
+    pagination_class = MessagePagination
 
     def get_queryset(self):
         user = self.get_user_from_token()
