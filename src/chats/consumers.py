@@ -24,16 +24,16 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
     async def connect(self):
         logger.debug("WebSocket connection attempt")
-        access_token = self.scope["query_string"].decode("utf-8").split("token=")[-1]
+        # access_token = self.scope["query_string"].decode("utf-8").split("token=")[-1]
 
-        try:
-            self.user = await self.get_user_from_access_token(access_token)
+        # try:
+        #     self.user = await self.get_user_from_access_token(access_token)
 
-            if not self.user.is_authenticated:
-                await self.close()
+        #     if not self.user.is_authenticated:
+        #         await self.close()
 
-        except (MissingAuthorizationHeader, InvalidAuthorizationHeader, TokenMissing, UserNotFound):
-            await self.close()
+        # except (MissingAuthorizationHeader, InvalidAuthorizationHeader, TokenMissing, UserNotFound):
+        #     await self.close()
 
         logger.debug(f"WebSocket connection attempt for room_id: {self.scope['url_route']['kwargs'].get('room_id')}")
         try:
@@ -150,16 +150,16 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
 class ChatListConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self):
-        access_token = self.scope["query_string"].decode("utf-8").split("token=")[-1]
+        # access_token = self.scope["query_string"].decode("utf-8").split("token=")[-1]
 
-        try:
-            self.user = await self.get_user_from_access_token(access_token)
+        # try:
+        #     self.user = await self.get_user_from_access_token(access_token)
 
-            if not self.user.is_authenticated:
-                await self.close()
+        #     if not self.user.is_authenticated:
+        #         await self.close()
 
-        except (MissingAuthorizationHeader, InvalidAuthorizationHeader, TokenMissing, UserNotFound):
-            await self.close()
+        # except (MissingAuthorizationHeader, InvalidAuthorizationHeader, TokenMissing, UserNotFound):
+        #     await self.close()
 
         await self.channel_layer.group_add("chat_list", self.channel_name)
         await self.accept()
