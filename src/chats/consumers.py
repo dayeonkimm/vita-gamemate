@@ -133,9 +133,6 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         # 메시지를 생성하고 데이터베이스에 저장
         message = Message.objects.create(room=room, sender=sender, text=message_text)
 
-        # 새로운 메시지가 생성된 후 ChatRoom의 updated_at을 갱신
-        room.updated_at = timezone.now()
-        room.save()
         return message
 
     @database_sync_to_async
