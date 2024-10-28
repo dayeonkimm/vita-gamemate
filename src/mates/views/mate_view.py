@@ -1,5 +1,6 @@
 from django.core.exceptions import ValidationError
 from rest_framework import generics, status
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -7,26 +8,15 @@ from mates.exceptions import InvalidLevelError
 from mates.models import MateGameInfo
 from mates.serializers.mate_serializer import RegisterMateSerializer
 from mates.utils import MateGameInfoPagination
-from users.exceptions import (
-    InvalidAuthorizationHeader,
-    MissingAuthorizationHeader,
-    TokenMissing,
-    UserNotFound,
-)
 from users.models import User
 from users.serializers.user_serializer import UserMateSerializer
-from users.services.user_service import UserService
 
 
 class RegisterMateAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
     def post(self, request):
-        authorization_header = request.headers.get("Authorization")
-
-        try:
-            user = UserService.get_user_from_token(authorization_header)
-
-        except (MissingAuthorizationHeader, InvalidAuthorizationHeader, TokenMissing, UserNotFound) as e:
-            return Response({"error": str(e)}, status=e.status_code)
+        user = request.user
 
         serializer = RegisterMateSerializer(data=request.data)
 

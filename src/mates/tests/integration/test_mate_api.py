@@ -8,13 +8,6 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from games.models import Game
 from mates.exceptions import InvalidLevelError
 from mates.models import MateGameInfo
-from mates.utils import GAME_LEVEL_CHOICES
-from users.exceptions import (
-    InvalidAuthorizationHeader,
-    MissingAuthorizationHeader,
-    TokenMissing,
-    UserNotFound,
-)
 from users.models import User
 
 
@@ -78,12 +71,6 @@ class RegisterMateAPIViewTest(APITestCase):
             response = self.client.post(self.url, data)
             self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
             self.assertIn("잘못된 레벨입니다.", response.data["error"])
-
-    @patch("users.services.user_service.UserService.get_user_from_token")
-    def test_missing_authorization_header(self, mock_get_user_from_token):
-        mock_get_user_from_token.side_effect = MissingAuthorizationHeader()
-        response = self.client.post(self.url, {})
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_register_mate_serializer_invalid(self):
         data = {

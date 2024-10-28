@@ -1,21 +1,15 @@
 from drf_spectacular.utils import OpenApiExample, OpenApiResponse, extend_schema
 from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from users.exceptions import (
-    InvalidAuthorizationHeader,
-    MissingAuthorizationHeader,
-    TokenMissing,
-    UserNotFound,
-)
+from users.exceptions import UserNotFound
 from users.models import User
 from users.serializers.user_serializer import UserMateSerializer, UserProfileSerializer
-from users.services.user_service import UserService
 
 
 class UserProfileAPIView(APIView):
-    # permission_classes = (IsAuthenticated,)
     serializer_class = UserProfileSerializer
 
     @extend_schema(
@@ -74,6 +68,7 @@ class UserProfileAPIView(APIView):
 
 
 class UserMeAPIView(APIView):
+    permission_classes = [IsAuthenticated]
     serializer_class = UserProfileSerializer
 
     @extend_schema(
@@ -141,15 +136,7 @@ class UserMeAPIView(APIView):
         },
     )
     def get(self, request):
-        authorization_header = request.headers.get("Authorization")
-
-        try:
-            user = UserService.get_user_from_token(authorization_header)
-
-        except (MissingAuthorizationHeader, InvalidAuthorizationHeader, TokenMissing, UserNotFound) as e:
-            return Response({"error": str(e)}, status=e.status_code)
-
-        serializer = UserProfileSerializer(user)
+        serializer = UserProfileSerializer(request.user)
 
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -219,15 +206,7 @@ class UserMeAPIView(APIView):
         },
     )
     def patch(self, request):
-        authorization_header = request.headers.get("Authorization")
-
-        try:
-            user = UserService.get_user_from_token(authorization_header)
-
-        except (MissingAuthorizationHeader, InvalidAuthorizationHeader, TokenMissing, UserNotFound) as e:
-            return Response({"error": str(e)}, status=e.status_code)
-
-        serializer = UserProfileSerializer(user, data=request.data)
+        serializer = UserProfileSerializer(request.user, data=request.data)
 
         if not serializer.is_valid():
             return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)

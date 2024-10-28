@@ -1,5 +1,3 @@
-from unittest.mock import patch
-
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -8,7 +6,6 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from game_requests.models import GameRequest
 from games.models import Game
 from mates.models import MateGameInfo
-from users.exceptions import MissingAuthorizationHeader
 from users.models import User
 
 
@@ -254,18 +251,3 @@ class GameRequestAPITest(APITestCase):
 
         response = self.client.post(self.url_accept, {"is_accept": 123})
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-
-    @patch("users.services.user_service.UserService.get_user_from_token")
-    def test_missing_authorization_header(self, mock_get_user_from_token):
-        mock_get_user_from_token.side_effect = MissingAuthorizationHeader()
-        response = self.client.post(self.url_create, {})
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
-
-        response = self.client.get(self.url_received, {})
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
-
-        response = self.client.get(self.url_ordered, {})
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
-
-        response = self.client.post(self.url_accept, {})
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)

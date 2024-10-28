@@ -4,13 +4,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from games.models import Game
 from reviews.models import Review
-from reviews.serializers.serializers import (
-    AllReviewSerializer,
-    PaginatedReviewSerializer,
-    ReviewSerializer,
-)
+from reviews.serializers.serializers import AllReviewSerializer, ReviewSerializer
 from reviews.utils import ReviewPagination
 
 
