@@ -31,11 +31,10 @@ class ChatMessageAPITest(APITestCase):
 
     def test_list_messages_success(self):
         Message.objects.create(room=self.chatroom, sender=self.main_user, text="하이!")
-
         response = self.client.get(self.list_messages_url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 1)
+        self.assertEqual(len(response.data), 4)
 
     def test_list_messages_room_not_found(self):
         response = self.client.get(reverse("chat_messages", kwargs={"room_id": 99}))

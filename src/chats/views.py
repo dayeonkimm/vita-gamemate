@@ -31,12 +31,9 @@ class ChatRoomCreateView(generics.CreateAPIView):
 
         existing_chatroom = self.get_existing_chatroom(main_user, other_user)
         if existing_chatroom:
-            Message.objects.create(room=existing_chatroom, sender=other_user, text=f"안녕하세요 {other_user.nickname}입니다")
             return self.handle_existing_chatroom(existing_chatroom, other_user)
 
-        new_chatroom = self.create_new_chatroom(main_user, other_user)
-        Message.objects.create(room=existing_chatroom, sender=other_user, text=f"반갑습니다 {other_user.nickname}입니다")
-        return new_chatroom
+        return self.create_new_chatroom(main_user, other_user)
 
     def get_user_from_token(self):
         authorization_header = self.request.headers.get("Authorization")
@@ -58,8 +55,7 @@ class ChatRoomCreateView(generics.CreateAPIView):
         return ChatRoom.objects.filter(chatroom_users__user=main_user).filter(chatroom_users__user=other_user).first()
 
     def handle_existing_chatroom(self, chatroom, other_user):
-        chatroom.updated_at = timezone.now()
-        chatroom.save(update_fields=["updated_at"])
+        Message.objects.create(room=chatroom, sender=other_user, text=f"안녕하세요 {other_user.nickname}입니다")
         context = self.get_serializer_context()
         context.update(self.get_additional_context(chatroom, other_user))
         serializer = self.get_serializer(chatroom, context=context)
@@ -69,6 +65,7 @@ class ChatRoomCreateView(generics.CreateAPIView):
         chatroom = ChatRoom.objects.create()
         ChatRoomUser.objects.create(chatroom=chatroom, user=main_user)
         ChatRoomUser.objects.create(chatroom=chatroom, user=other_user)
+        Message.objects.create(room=chatroom, sender=other_user, text=f"반갑습니다 {other_user.nickname}입니다")
         context = self.get_serializer_context()
         context.update(self.get_additional_context(chatroom, other_user, is_new=True))
         serializer = self.get_serializer(chatroom, context=context)
