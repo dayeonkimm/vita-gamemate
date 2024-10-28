@@ -42,27 +42,19 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             # 수신된 JSON에서 필요한 정보를 추출
             message = content.get("message")
             sender_nickname = content.get("sender_nickname")
-            main_user_nickname = content.get("main_user_nickname")
-            other_user_nickname = content.get("other_user_nickname")
 
-            if not all([message, sender_nickname, main_user_nickname, other_user_nickname]):
+            if not all([message, sender_nickname]):
                 raise ValueError("필수 정보가 누락되었습니다.")
-
-            # 제공된 닉네임을 사용하여 방을 가져오거나 생성
-            room = await self.get_or_create_room(main_user_nickname, other_user_nickname)
-
-            # room_id 속성을 업데이트
-            self.room_id = str(room.id)
 
             # 그룹 이름을 가져오기
             group_name = self.get_group_name(self.room_id)
 
             # 수신된 메시지를 데이터베이스에 저장
-            await self.save_message(room, sender_nickname, message)
+            await self.save_message(self.room_id, sender_nickname, message)
 
             # 메시지를 전체 그룹에 전송
             await self.channel_layer.group_send(
-                group_name, {"type": "chat_message", "message": message, "sender_nickname": sender_nickname}  # 발신자 닉네임 정보 추가
+                group_name, {"type": "chat_message", "message": message, "sender_nickname": sender_nickname}
             )
 
         except Exception as e:
@@ -73,7 +65,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         try:
             # 이벤트에서 메시지와 발신자 닉네임을 추출
             message = event["message"]
-            sender_nickname = event["sender_nickname"]  # 발신자 닉네임 정보 추출
+            sender_nickname = event["sender_nickname"]
 
             # 추출된 메시지와 발신자 닉네임을 JSON으로 전송
             await self.send_json({"message": message, "sender_nickname": sender_nickname})
@@ -86,21 +78,16 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         return f"chat_room_{room_id}"
 
     @database_sync_to_async
-    def get_or_create_room(self, main_user_nickname, other_user_nickname):
-        main_user, _ = User.objects.get_or_create(nickname=main_user_nickname)
-        other_user, _ = User.objects.get_or_create(nickname=other_user_nickname)
-
-        room, created = ChatRoom.objects.get_or_create(main_user=main_user, other_user=other_user)
-        return room
-
-    @database_sync_to_async
-    def save_message(self, room, sender_nickname, message_text):
+    def save_message(self, room_id, sender_nickname, message_text):
         # 발신자 닉네임과 메시지 텍스트가 제공되었는지 확인
         if not sender_nickname or not message_text:
             raise ValueError("발신자 닉네임 및 메시지 텍스트가 필요합니다.")
 
+        room = ChatRoom.objects.get(id=room_id)
+        sender = User.objects.get(nickname=sender_nickname)
+
         # 메시지를 생성하고 데이터베이스에 저장
-        Message.objects.create(room=room, sender_nickname=sender_nickname, text=message_text)
+        Message.objects.create(room=room, sender=sender, text=message_text)
 
         # 새로운 메시지가 생성된 후 ChatRoom의 updated_at을 갱신
         room.updated_at = timezone.now()
