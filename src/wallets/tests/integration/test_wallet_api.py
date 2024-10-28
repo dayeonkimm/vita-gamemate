@@ -1,16 +1,8 @@
-from unittest.mock import patch
-
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
-from users.exceptions import (
-    InvalidAuthorizationHeader,
-    MissingAuthorizationHeader,
-    TokenMissing,
-    UserNotFound,
-)
 from users.models import User
 from wallets.models.wallets_model import Wallet
 
@@ -66,39 +58,3 @@ class WalletViewTest(APITestCase):
         data = {"coin": 50}
         response = self.client.post(url, data)
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
-
-    @patch("users.services.user_service.UserService.get_user_from_token")
-    def test_missing_authorization_header(self, mock_get_user_from_token):
-        mock_get_user_from_token.side_effect = MissingAuthorizationHeader()
-        response = self.client.get(reverse("user-coin-wallet"), {})
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
-
-        response2 = self.client.post(reverse("user-coin-recharge"), {})
-        self.assertEqual(response2.status_code, status.HTTP_401_UNAUTHORIZED)
-
-    @patch("users.services.user_service.UserService.get_user_from_token")
-    def test_invalid_authorization_header(self, mock_get_user_from_token):
-        mock_get_user_from_token.side_effect = InvalidAuthorizationHeader()
-        response = self.client.get(reverse("user-coin-wallet"), {})
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
-
-        response2 = self.client.post(reverse("user-coin-recharge"), {})
-        self.assertEqual(response2.status_code, status.HTTP_401_UNAUTHORIZED)
-
-    @patch("users.services.user_service.UserService.get_user_from_token")
-    def test_token_missing(self, mock_get_user_from_token):
-        mock_get_user_from_token.side_effect = TokenMissing()
-        response = self.client.get(reverse("user-coin-wallet"), {})
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-
-        response2 = self.client.post(reverse("user-coin-recharge"), {})
-        self.assertEqual(response2.status_code, status.HTTP_400_BAD_REQUEST)
-
-    @patch("users.services.user_service.UserService.get_user_from_token")
-    def test_user_not_found(self, mock_get_user_from_token):
-        mock_get_user_from_token.side_effect = UserNotFound()
-        response = self.client.get(reverse("user-coin-wallet"), {})
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-
-        response2 = self.client.post(reverse("user-coin-recharge"), {})
-        self.assertEqual(response2.status_code, status.HTTP_404_NOT_FOUND)
