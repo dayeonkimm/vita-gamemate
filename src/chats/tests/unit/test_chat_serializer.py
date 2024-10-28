@@ -25,7 +25,7 @@
 #             email="ee@ee.com",
 #             profile_image="아이유.png",
 #         )
-    
+
 #         self.chatroom = ChatRoom.objects.create()
 #         ChatRoomUser.objects.create(chatroom=self.chatroom, user=self.main_user)
 #         ChatRoomUser.objects.create(chatroom=self.chatroom, user=self.other_user)

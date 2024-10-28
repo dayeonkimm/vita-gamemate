@@ -79,7 +79,13 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
             # 메시지를 전체 그룹에 전송
             await self.channel_layer.group_send(
-                group_name, {"type": "chat_message", "message": message, "sender_nickname": sender_nickname, "timestamp": message_obj.created_at.isoformat()}
+                group_name,
+                {
+                    "type": "chat_message",
+                    "message": message,
+                    "sender_nickname": sender_nickname,
+                    "timestamp": message_obj.created_at.isoformat(),
+                },
             )
 
             # 채팅 리스트 업데이트

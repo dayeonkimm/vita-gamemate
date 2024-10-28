@@ -60,7 +60,7 @@ class ChatRoomAPITest(APITestCase):
         self.chatroom = ChatRoom.objects.create()
         ChatRoomUser.objects.create(chatroom=self.chatroom, user=self.main_user)
         ChatRoomUser.objects.create(chatroom=self.chatroom, user=self.other_user)
-        
+
         response = self.client.get(self.list_chat_rooms_url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 1)
