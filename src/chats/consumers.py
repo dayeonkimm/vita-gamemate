@@ -1,17 +1,42 @@
 from channels.db import database_sync_to_async
+from asgiref.sync import sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from django.utils import timezone
+
+from users.exceptions import (
+    InvalidAuthorizationHeader,
+    MissingAuthorizationHeader,
+    TokenMissing,
+    UserNotFound,
+)
+from users.services.user_service import UserService
 
 from users.managers import UserManager
 from users.models.user_model import User
 
 from .models import ChatRoom, Message
 
+import logging
+
+logger = logging.getLogger("channels")
+
 
 class ChatConsumer(AsyncJsonWebsocketConsumer):
 
     async def connect(self):
-        print(f"WebSocket connection attempt for room_id: {self.scope['url_route']['kwargs'].get('room_id')}")
+        logger.debug("WebSocket connection attempt")
+        access_token = self.scope["query_string"].decode("utf-8").split("token=")[-1]
+
+        try:
+            self.user = await self.get_user_from_access_token(access_token)
+
+            if not self.user.is_authenticated:
+                await self.close()
+
+        except (MissingAuthorizationHeader, InvalidAuthorizationHeader, TokenMissing, UserNotFound):
+            await self.close()
+        
+        logger.debug(f"WebSocket connection attempt for room_id: {self.scope['url_route']['kwargs'].get('room_id')}")
         try:
             self.room_id = self.scope["url_route"]["kwargs"]["room_id"]  # URL 경로에서 방 ID를 추출
 
@@ -22,22 +47,23 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
             await self.channel_layer.group_add(group_name, self.channel_name)  # 현재 채널을 그룹에 추가
             await self.accept()  # WebSocket 연결 수락
-            print(f"WebSocket connection accepted for room_id: {self.room_id}")
+            logger.debug(f"WebSocket connection accepted for room_id: {self.room_id}")
 
         except Exception as e:
-            print(f"Error in connect: {str(e)}")
+            logger.error(f"WebSocket connection failed: {str(e)}", exc_info=True)
             await self.close()
 
     async def disconnect(self, close_code):
         try:
             group_name = self.get_group_name(self.room_id)  # 방 ID를 사용하여 그룹 이름 가져옴
             await self.channel_layer.group_discard(group_name, self.channel_name)  # 현재 채널을 그룹에서 제거
+            logger.debug(f"WebSocket disconnected with code: {close_code}")
 
         except Exception as e:
             pass
 
     async def receive_json(self, content):
-        print(f"Received content: {content}")
+        logger.debug(f"Received content: {content}")
         try:
             # 수신된 JSON에서 필요한 정보를 추출
             message = content.get("message")
@@ -50,15 +76,27 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             group_name = self.get_group_name(self.room_id)
 
             # 수신된 메시지를 데이터베이스에 저장
-            await self.save_message(self.room_id, sender_nickname, message)
+            message_obj = await self.save_message(self.room_id, sender_nickname, message)
 
             # 메시지를 전체 그룹에 전송
             await self.channel_layer.group_send(
                 group_name, {"type": "chat_message", "message": message, "sender_nickname": sender_nickname}
             )
+            
+            # 채팅 리스트 업데이트
+            await self.channel_layer.group_send(
+                "chat_list",
+                {
+                    "type": "chat_list_update",
+                    "room_id": self.room_id,
+                    "last_message": message,
+                    "sender_nickname": sender_nickname,
+                    "timestamp": message_obj.created_at.isoformat()
+                }
+            )
 
         except Exception as e:
-            print(f"Error in receive_json: {str(e)}")
+            logger.debug(f"Error in receive_json: {str(e)}", exc_info=True)
             await self.send_json({"error": str(e)})
 
     async def chat_message(self, event):
@@ -87,13 +125,50 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         sender = User.objects.get(nickname=sender_nickname)
 
         # 메시지를 생성하고 데이터베이스에 저장
-        Message.objects.create(room=room, sender=sender, text=message_text)
+        message = Message.objects.create(room=room, sender=sender, text=message_text)
 
         # 새로운 메시지가 생성된 후 ChatRoom의 updated_at을 갱신
         room.updated_at = timezone.now()
         room.save()
+        return message
 
     @database_sync_to_async
     def check_room_exists(self, room_id):
         # 주어진 ID로 채팅방이 존재하는지 확인
         return ChatRoom.objects.filter(id=room_id).exists()
+    
+    @sync_to_async
+    def get_user_from_access_token(self, access_token):
+        return UserService.get_user_from_access_token(access_token)
+    
+    
+class ChatListConsumer(AsyncJsonWebsocketConsumer):
+    async def connect(self):
+        access_token = self.scope["query_string"].decode("utf-8").split("token=")[-1]
+
+        try:
+            self.user = await self.get_user_from_access_token(access_token)
+
+            if not self.user.is_authenticated:
+                await self.close()
+
+        except (MissingAuthorizationHeader, InvalidAuthorizationHeader, TokenMissing, UserNotFound):
+            await self.close()
+        
+        await self.channel_layer.group_add("chat_list", self.channel_name)
+        await self.accept()
+        logger.debug("WebSocket connection accepted for chat list")
+
+    async def disconnect(self, close_code):
+        await self.channel_layer.group_discard("chat_list", self.channel_name)
+        logger.debug(f"WebSocket disconnected from chat list with code: {close_code}")
+    
+    async def receive_json(self, content):
+        logger.debug(f"Received content in chat list: {content}")
+
+    async def chat_list_update(self, event):
+        await self.send_json(event)
+        
+    @sync_to_async
+    def get_user_from_access_token(self, access_token):
+        return UserService.get_user_from_access_token(access_token)
