@@ -17,6 +17,7 @@ class GameRequestCreateSerializer(serializers.ModelSerializer):
 
 class GameRequestOrderedSerializer(serializers.ModelSerializer):
     game_request_id = serializers.IntegerField(source="id")
+    mate_id = serializers.IntegerField(source="mate.id")
     mate_nickname = serializers.CharField(source="mate.nickname")
     mate_profile_image = serializers.ImageField(source="mate.profile_image")
     mate_gender = serializers.CharField(source="mate.gender")
@@ -29,6 +30,7 @@ class GameRequestOrderedSerializer(serializers.ModelSerializer):
         model = GameRequest
         fields = [
             "game_request_id",
+            "mate_id",
             "mate_nickname",
             "mate_profile_image",
             "mate_gender",
@@ -41,6 +43,7 @@ class GameRequestOrderedSerializer(serializers.ModelSerializer):
 
 class GameRequestReceivedSerializer(serializers.ModelSerializer):
     game_request_id = serializers.IntegerField(source="id")
+    user_id = serializers.IntegerField(source="user.id")
     user_nickname = serializers.CharField(source="user.nickname")
     user_profile_image = serializers.ImageField(source="user.profile_image")
     user_gender = serializers.CharField(source="user.gender")
@@ -53,6 +56,7 @@ class GameRequestReceivedSerializer(serializers.ModelSerializer):
         model = GameRequest
         fields = [
             "game_request_id",
+            "user_id",
             "user_nickname",
             "user_profile_image",
             "user_gender",
