@@ -4,6 +4,7 @@ from django.http import Http404
 from django.utils import timezone
 from rest_framework import generics, status
 from rest_framework.exceptions import ValidationError
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -54,8 +55,7 @@ class ChatRoomCreateView(generics.CreateAPIView):
         return ChatRoom.objects.filter(chatroom_users__user=main_user).filter(chatroom_users__user=other_user).first()
 
     def handle_existing_chatroom(self, chatroom, other_user):
-        chatroom.updated_at = timezone.now()
-        chatroom.save(update_fields=["updated_at"])
+        Message.objects.create(room=chatroom, sender=other_user, text=f"안녕하세요 {other_user.nickname}입니다")
         context = self.get_serializer_context()
         context.update(self.get_additional_context(chatroom, other_user))
         serializer = self.get_serializer(chatroom, context=context)
@@ -65,6 +65,7 @@ class ChatRoomCreateView(generics.CreateAPIView):
         chatroom = ChatRoom.objects.create()
         ChatRoomUser.objects.create(chatroom=chatroom, user=main_user)
         ChatRoomUser.objects.create(chatroom=chatroom, user=other_user)
+        Message.objects.create(room=chatroom, sender=other_user, text=f"반갑습니다 {other_user.nickname}입니다")
         context = self.get_serializer_context()
         context.update(self.get_additional_context(chatroom, other_user, is_new=True))
         serializer = self.get_serializer(chatroom, context=context)
@@ -103,7 +104,7 @@ class ChatRoomListView(generics.ListAPIView):
                 other_user_id=Subquery(other_user.values("user__id")[:1]),
                 other_user_profile_image=Subquery(other_user.values("user__profile_image")[:1]),
             )
-            .order_by("-updated_at")
+            .order_by("-latest_message_time")
         )
 
     def get_user_from_token(self):
@@ -114,9 +115,16 @@ class ChatRoomListView(generics.ListAPIView):
             raise ValidationError({"message": str(e)})
 
 
+class MessagePagination(PageNumberPagination):
+    page_size = 20
+    page_size_query_param = "page_size"
+    max_page_size = 100
+
+
 class MessageListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = MessageSerializer
+    pagination_class = MessagePagination
 
     def get_queryset(self):
         user = self.get_user_from_token()

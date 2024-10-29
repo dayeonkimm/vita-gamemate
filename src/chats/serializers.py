@@ -4,9 +4,18 @@ from .models import ChatRoom, Message
 
 
 class MessageSerializer(serializers.ModelSerializer):
+    sender_nickname = serializers.SerializerMethodField()
+    timestamp = serializers.SerializerMethodField()
+
     class Meta:
         model = Message
-        fields = "__all__"
+        fields = ("id", "sender_nickname", "text", "timestamp")
+
+    def get_sender_nickname(self, obj):
+        return obj.sender.nickname
+
+    def get_timestamp(self, obj):
+        return obj.updated_at
 
 
 class ChatRoomSerializer(serializers.ModelSerializer):
