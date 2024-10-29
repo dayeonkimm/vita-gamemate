@@ -25,6 +25,7 @@ class GameRequestOrderedSerializer(serializers.ModelSerializer):
     status = serializers.BooleanField()
     request_date = serializers.DateTimeField(source="created_at")
     request_amount = serializers.IntegerField(source="amount")
+    request_price = serializers.IntegerField(source="price")
 
     class Meta:
         model = GameRequest
@@ -38,6 +39,7 @@ class GameRequestOrderedSerializer(serializers.ModelSerializer):
             "status",
             "request_date",
             "request_amount",
+            "request_price",
         ]
 
 
@@ -51,6 +53,7 @@ class GameRequestReceivedSerializer(serializers.ModelSerializer):
     status = serializers.BooleanField()
     request_date = serializers.DateTimeField(source="created_at")
     request_amount = serializers.IntegerField(source="amount")
+    request_price = serializers.IntegerField(source="price")
 
     class Meta:
         model = GameRequest
@@ -64,6 +67,7 @@ class GameRequestReceivedSerializer(serializers.ModelSerializer):
             "status",
             "request_date",
             "request_amount",
+            "request_price",
         ]
 
 
