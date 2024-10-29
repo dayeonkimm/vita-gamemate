@@ -94,7 +94,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 {
                     "type": "chat_list_update",
                     "id": self.room_id,
-                    "lastest_message": message,
+                    "latest_message": message,
                     "sender_nickname": sender_nickname,
                     "lastest_message_time": message_obj.created_at.isoformat(),
                 },
