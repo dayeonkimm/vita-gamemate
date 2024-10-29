@@ -34,13 +34,13 @@ class ReviewSerializerValidationTestCase(APITestCase):
         # 올바른 사용자가 자신의 게임 요청에 리뷰를 작성할 수 있는지 확인
         self.client.force_authenticate(user=self.user)
 
-        url = reverse("review-write")
+        self.url = reverse("review-write", kwargs={"game_request_id": self.game_request.id})
         data = {
             "game_request": self.game_request.id,
             "rating": 4.0,
             "content": "정상적인 리뷰 작성",
         }
-        response = self.client.post(url, data)
+        response = self.client.post(self.url, data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data["content"], "정상적인 리뷰 작성")
         self.assertEqual(response.data["rating"], 4.0)
@@ -49,13 +49,13 @@ class ReviewSerializerValidationTestCase(APITestCase):
         # 다른 사용자가 리뷰를 작성하려 할 때 유효성 검사에서 실패하는지 확인
         self.client.force_authenticate(user=self.other_user)  # 다른 사용자로 인증 변경
 
-        url = reverse("review-write")
+        self.url = reverse("review-write", kwargs={"game_request_id": self.game_request.id})
         data = {
             "game_request": self.game_request.id,
             "rating": 4.0,
             "content": "다른 사용자가 작성하는 리뷰",
         }
-        response = self.client.post(url, data)
+        response = self.client.post(self.url, data)
 
         # 유효성 검사 실패 확인
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
