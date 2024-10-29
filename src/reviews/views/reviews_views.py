@@ -4,6 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from game_requests.models import GameRequest
 from reviews.models import Review
 from reviews.serializers.serializers import (
     AllReviewSerializer,
@@ -33,25 +34,29 @@ class GameReviewCreateAPIView(APIView):
     permission_classes = (IsAuthenticated,)
 
     def post(self, request, *args, **kwargs):
-
-        data = request.data.copy()
-        data["user"] = request.user.id
-
         # path 파라미터에서 game_request_id를 가져옵니다.
         game_request_id = kwargs.get("game_request_id")
+
+        # 해당 game_request_id가 데이터베이스에 존재하는지 확인
+        if not GameRequest.objects.filter(id=game_request_id).exists():
+            return Response({"error": "유효하지 않은 게임 요청입니다."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 요청 데이터를 복사하고 사용자 정보 및 game_request_id를 추가합니다.
+        data = request.data.copy()
+        data["user"] = request.user.id
         data["game_request"] = game_request_id
 
         # 해당 게임 요청에 대한 리뷰가 이미 존재하는지 확인
         if Review.objects.filter(game_request_id=game_request_id).exists():
             return Response({"error": "해당 게임 요청에 대한 리뷰는 이미 존재합니다."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # 요청 의뢰로부터 리뷰를 생성할 수 있도록 시리얼라이저 사용
-        serializer = AllReviewSerializer(data=request.data, context={"request": request})
+        # 수정된 데이터를 사용하여 시리얼라이저 인스턴스 생성
+        serializer = AllReviewSerializer(data=data, context={"request": request})
         if serializer.is_valid():
-            serializer.save()  # 유저 정보 추가
-            return Response(serializer.data, status=201)
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-        return Response(serializer.errors, status=400)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 # 1. 특정 게임 의뢰에 대한 리뷰 조회
