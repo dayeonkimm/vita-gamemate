@@ -1,4 +1,4 @@
-from django.db.models.aggregates import Avg
+from django.db.models.aggregates import Avg, Count
 from rest_framework import serializers
 
 from games.models import Game
@@ -41,8 +41,16 @@ class MateGameInfoSerializer(serializers.ModelSerializer):
         ]
 
     def get_review_count(self, obj):
-        return Review.objects.filter(game_request__game_id=obj.game_id).count()
+        # 캐시를 활용해 동일한 쿼리를 재사용
+        if not hasattr(obj, "_review_data"):
+            obj._review_data = Review.objects.filter(game_request__game_id=obj.game_id).aggregate(
+                review_count=Count("id"), average_rating=Avg("rating")
+            )
+        return obj._review_data["review_count"] or 0
 
     def get_average_rating(self, obj):
-        average = Review.objects.filter(game_request__game_id=obj.game_id).aggregate(Avg("rating"))["rating__avg"]
-        return round(average, 2) if average is not None else 0
+        # 이미 캐싱된 _review_data 에서 평균 평점 값을 가져옴
+        if hasattr(obj, "_review_data"):
+            average = obj._review_data["average_rating"]
+            return round(average, 2) if average is not None else 0
+        return 0
