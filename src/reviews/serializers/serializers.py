@@ -47,8 +47,8 @@ class AllReviewSerializer(serializers.ModelSerializer):
 
 
 class GameReviewSerializer(serializers.ModelSerializer):
-    game_request_id = serializers.IntegerField(source="game_request.mate_id", read_only=True)
+    mate_id = serializers.IntegerField(source="game_request.mate_id", read_only=True)
 
     class Meta:
         model = Review
-        fields = ["game_request_id", "rating", "content", "created_at"]
+        fields = ["mate_id", "rating", "content", "created_at"]
