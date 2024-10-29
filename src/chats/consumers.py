@@ -131,7 +131,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         sender = User.objects.get(nickname=sender_nickname)
 
         # 메시지를 생성하고 데이터베이스에 저장
-        message = Message.objects.create(room=room, sender=sender, text=message_text)
+        message = Message.objects.create(room=room, sender=sender, message=message_text)
 
         return message
 
