@@ -5,12 +5,16 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from reviews.models import Review
-from reviews.serializers.serializers import AllReviewSerializer, ReviewSerializer
+from reviews.serializers.serializers import (
+    AllReviewSerializer,
+    GameReviewSerializer,
+    ReviewSerializer,
+)
 from reviews.utils import ReviewPagination
 
 
 class ReviewListView(ListCreateAPIView):
-    serializer_class = AllReviewSerializer
+    serializer_class = GameReviewSerializer
     pagination_class = ReviewPagination
 
     def get_queryset(self):
