@@ -12,6 +12,7 @@ class GameRequest(models.Model):
     price = models.PositiveIntegerField()
     amount = models.PositiveIntegerField(default=1)
     status = models.BooleanField(default=False)
+    review_status = models.BooleanField(default=False)
     updated_at = models.DateTimeField(auto_now=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
