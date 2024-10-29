@@ -44,3 +44,11 @@ class AllReviewSerializer(serializers.ModelSerializer):
         if value < 1.0 or value > 5.0:
             raise serializers.ValidationError("평점은 1.0에서 5.0 사이여야 합니다.")
         return value
+
+
+class GameReviewSerializer(serializers.ModelSerializer):
+    mate_id = serializers.IntegerField(source="game_request.mate_id", read_only=True)
+
+    class Meta:
+        model = Review
+        fields = ["mate_id", "rating", "content", "created_at"]

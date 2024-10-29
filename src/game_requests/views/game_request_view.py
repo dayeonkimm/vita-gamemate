@@ -12,18 +12,12 @@ from game_requests.serializers.game_request_serializer import (
 )
 from game_requests.utils import GameRequestPagination
 from mates.models import MateGameInfo
-from users.exceptions import (
-    InvalidAuthorizationHeader,
-    MissingAuthorizationHeader,
-    TokenMissing,
-    UserNotFound,
-)
+from users.exceptions import UserNotFound
 from users.models import User
-from users.services.user_service import UserService
 
 
 class GameRequestCreateAPIView(APIView):
-    permission_classes = (IsAuthenticated,)
+    permission_classes = [IsAuthenticated]
 
     def post(self, request, user_id):
         try:
@@ -32,13 +26,7 @@ class GameRequestCreateAPIView(APIView):
         except UserNotFound:
             return Response({"error": "사용자를 찾지 못했습니다."}, status=status.HTTP_404_NOT_FOUND)
 
-        authorization_header = request.headers.get("Authorization")
-
-        try:
-            user = UserService.get_user_from_token(authorization_header)
-
-        except (MissingAuthorizationHeader, InvalidAuthorizationHeader, TokenMissing, UserNotFound) as e:
-            return Response({"error": str(e)}, status=e.status_code)
+        user = request.user
 
         if user_id == user.id:
             return Response({"error": "자신에게 의뢰 할 수 없습니다."}, status=status.HTTP_400_BAD_REQUEST)
@@ -59,17 +47,11 @@ class GameRequestCreateAPIView(APIView):
 
 
 class GameRequestOrderedAPIView(APIView):
-    permission_classes = (IsAuthenticated,)
+    permission_classes = [IsAuthenticated]
     pagination_class = GameRequestPagination
 
     def get(self, request):
-        authorization_header = request.headers.get("Authorization")
-
-        try:
-            user = UserService.get_user_from_token(authorization_header)
-
-        except (MissingAuthorizationHeader, InvalidAuthorizationHeader, TokenMissing, UserNotFound) as e:
-            return Response({"error": str(e)}, status=e.status_code)
+        user = request.user
 
         game_requests = GameRequest.objects.filter(user=user).order_by("-created_at")
 
@@ -82,17 +64,11 @@ class GameRequestOrderedAPIView(APIView):
 
 
 class GameRequestReceivedAPIView(APIView):
-    permission_classes = (IsAuthenticated,)
+    permission_classes = [IsAuthenticated]
     pagination_class = GameRequestPagination
 
     def get(self, request):
-        authorization_header = request.headers.get("Authorization")
-
-        try:
-            mate = UserService.get_user_from_token(authorization_header)
-
-        except (MissingAuthorizationHeader, InvalidAuthorizationHeader, TokenMissing, UserNotFound) as e:
-            return Response({"error": str(e)}, status=e.status_code)
+        mate = request.user
 
         game_requests = GameRequest.objects.filter(mate=mate).order_by("-created_at")
 
@@ -105,16 +81,10 @@ class GameRequestReceivedAPIView(APIView):
 
 
 class GameRequestAcceptAPIView(APIView):
-    permission_classes = (IsAuthenticated,)
+    permission_classes = [IsAuthenticated]
 
     def post(self, request, game_request_id):
-        authorization_header = request.headers.get("Authorization")
-
-        try:
-            mate = UserService.get_user_from_token(authorization_header)
-
-        except (MissingAuthorizationHeader, InvalidAuthorizationHeader, TokenMissing, UserNotFound) as e:
-            return Response({"error": str(e)}, status=e.status_code)
+        mate = request.user
 
         try:
             game_request = GameRequest.objects.get_game_request_from_id(id=game_request_id)

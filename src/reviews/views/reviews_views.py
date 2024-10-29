@@ -4,18 +4,17 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from games.models import Game
 from reviews.models import Review
 from reviews.serializers.serializers import (
     AllReviewSerializer,
-    PaginatedReviewSerializer,
+    GameReviewSerializer,
     ReviewSerializer,
 )
 from reviews.utils import ReviewPagination
 
 
 class ReviewListView(ListCreateAPIView):
-    serializer_class = AllReviewSerializer
+    serializer_class = GameReviewSerializer
     pagination_class = ReviewPagination
 
     def get_queryset(self):
@@ -38,8 +37,9 @@ class GameReviewCreateAPIView(APIView):
         data = request.data.copy()
         data["user"] = request.user.id
 
-        # 게임 요청 ID를 가져옵니다.
-        game_request_id = data.get("game_request")
+        # path 파라미터에서 game_request_id를 가져옵니다.
+        game_request_id = kwargs.get("game_request_id")
+        data["game_request"] = game_request_id
 
         # 해당 게임 요청에 대한 리뷰가 이미 존재하는지 확인
         if Review.objects.filter(game_request_id=game_request_id).exists():
