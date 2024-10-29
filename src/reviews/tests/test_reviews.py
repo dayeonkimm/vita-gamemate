@@ -133,12 +133,16 @@ class GameReviewCreateAPIViewTest(APITestCase):
     def test_create_review_game_request_not_found(self):  # 성공
         # When: 존재하지 않는 게임 요청으로 리뷰 생성 요청
         self.client.force_authenticate(user=self.user1)
-        data = {"game_request": 99999, "rating": 5.0, "content": "아 짱 좋아요"}  # 존재하지 않는 ID
-        response = self.client.post(self.url, data, format="json")
 
-        # Then: 404 Not Found 응답을 받아야 함
+        # 존재하지 않는 game_request_id 사용
+        url = reverse("review-write", kwargs={"game_request_id": 99999})  # 유효하지 않은 game_request_id
+        data = {"rating": 5.0, "content": "아 짱 좋아요"}
+
+        response = self.client.post(url, data, format="json")
+
+        # Then: 400 Bad Request 응답을 받아야 함
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(str(response.data["game_request"][0]), f'유효하지 않은 pk "{data["game_request"]}" - 객체가 존재하지 않습니다.')
+        self.assertEqual(response.data["error"], "유효하지 않은 게임 요청입니다.")
 
     def test_create_review_invalid_rating(self):
         # When: 잘못된 평점으로 리뷰 생성 요청
