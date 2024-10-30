@@ -13,7 +13,10 @@ from users.exceptions import (
 )
 from users.services.user_service import UserService
 from wallets.models.wallets_model import Wallet
-from wallets.serializers.wallets_serializers import WalletRechargeSerializer
+from wallets.serializers.wallets_serializers import (
+    WalletRechargeSerializer,
+    WalletWithdrawSerializer,
+)
 
 
 class WalletBalanceView(APIView):
@@ -93,3 +96,27 @@ class WalletRechargeView(APIView):
         wallet.refresh_from_db()
 
         return Response({"message": "코인이 성공적으로 충전되었습니다.", "coin": wallet.coin}, status=status.HTTP_200_OK)
+
+
+class WalletWithdrawView(APIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = WalletWithdrawSerializer
+
+    def post(self, request, *args, **kwargs):
+        user = request.user
+
+        # 차감 시 Wallet 정보를 context로 전달
+        wallet = Wallet.objects.filter(user_id=user.id).first()
+        if not wallet:
+            return Response({"error": "지갑을 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = self.serializer_class(data=request.data, context={"wallet": wallet})
+        serializer.is_valid(raise_exception=True)
+        coin_amount = serializer.validated_data["coin"]
+
+        # F expression으로 잔액에서 차감
+        wallet.coin = F("coin") - coin_amount
+        wallet.save()
+        wallet.refresh_from_db()
+
+        return Response({"message": "코인이 성공적으로 차감되었습니다.", "coin": wallet.coin}, status=status.HTTP_200_OK)
