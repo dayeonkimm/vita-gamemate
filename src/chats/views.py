@@ -67,13 +67,13 @@ class ChatRoomCreateView(generics.CreateAPIView):
         ChatRoomUser.objects.create(chatroom=chatroom, user=other_user)
         Message.objects.create(room=chatroom, sender=other_user, message=f"반갑습니다 {other_user.nickname}입니다")
         context = self.get_serializer_context()
-        context.update(self.get_additional_context(chatroom, other_user, is_new=True))
+        context.update(self.get_additional_context(chatroom, other_user))
         serializer = self.get_serializer(chatroom, context=context)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-    def get_additional_context(self, chatroom, other_user, is_new=False):
+    def get_additional_context(self, chatroom, other_user):
         latest_message_data = (
-            None if is_new else Message.objects.filter(room=chatroom).order_by("-created_at").values("message", "created_at").first()
+            Message.objects.filter(room=chatroom).order_by("-created_at").values("message", "created_at").first()
         )
         return {
             "latest_message": latest_message_data["message"] if latest_message_data else None,
