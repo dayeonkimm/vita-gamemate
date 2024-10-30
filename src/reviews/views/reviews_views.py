@@ -37,23 +37,25 @@ class GameReviewCreateAPIView(APIView):
         # path 파라미터에서 game_request_id를 가져옵니다.
         game_request_id = kwargs.get("game_request_id")
 
-        # 해당 game_request_id가 데이터베이스에 존재하는지 확인
-        if not GameRequest.objects.filter(id=game_request_id).exists():
+        # 유효하지 않은 game_request_id 처리
+        try:
+            game_request = GameRequest.objects.get(id=game_request_id)
+        except GameRequest.DoesNotExist:
             return Response({"error": "유효하지 않은 게임 요청입니다."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # 요청 데이터를 복사하고 사용자 정보 및 game_request_id를 추가합니다.
         data = request.data.copy()
         data["user"] = request.user.id
         data["game_request"] = game_request_id
 
-        # 해당 게임 요청에 대한 리뷰가 이미 존재하는지 확인
-        if Review.objects.filter(game_request_id=game_request_id).exists():
-            return Response({"error": "해당 게임 요청에 대한 리뷰는 이미 존재합니다."}, status=status.HTTP_400_BAD_REQUEST)
-
-        # 수정된 데이터를 사용하여 시리얼라이저 인스턴스 생성
+        # 시리얼라이저 인스턴스 생성
         serializer = AllReviewSerializer(data=data, context={"request": request})
         if serializer.is_valid():
             serializer.save()
+
+            # 리뷰 작성 후 `review_status`를 True로 업데이트합니다.
+            game_request.review_status = True
+            game_request.save(update_fields=["review_status"])
+
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
