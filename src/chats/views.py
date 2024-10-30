@@ -72,9 +72,7 @@ class ChatRoomCreateView(generics.CreateAPIView):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def get_additional_context(self, chatroom, other_user):
-        latest_message_data = (
-            Message.objects.filter(room=chatroom).order_by("-created_at").values("message", "created_at").first()
-        )
+        latest_message_data = Message.objects.filter(room=chatroom).order_by("-created_at").values("message", "created_at").first()
         return {
             "latest_message": latest_message_data["message"] if latest_message_data else None,
             "latest_message_time": latest_message_data["created_at"] if latest_message_data else None,
