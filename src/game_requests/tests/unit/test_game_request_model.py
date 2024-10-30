@@ -44,5 +44,5 @@ class GameRequestModelTest(TestCase):
         self.assertTrue(game_request.status)
 
     def test_reject_game_request(self):
-        game_request = GameRequest.objects.reject(self.game_request)
-        self.assertFalse(game_request.status)
+        GameRequest.objects.reject(self.game_request)
+        self.assertFalse(GameRequest.objects.filter(id=self.game_request.id).exists())

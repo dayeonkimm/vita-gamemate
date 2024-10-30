@@ -1,3 +1,4 @@
+from django.core.exceptions import ObjectDoesNotExist
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -178,7 +179,7 @@ class GameRequestAPITest(APITestCase):
         self.token = str(TokenObtainPairSerializer.get_token(self.mate).access_token)
         self.client.credentials(HTTP_AUTHORIZATION="Bearer " + self.token)
 
-        GameRequest.objects.create(
+        self.game_request = GameRequest.objects.create(
             user_id=self.user.id,
             mate_id=self.mate.id,
             game_id=self.game.id,
@@ -186,9 +187,13 @@ class GameRequestAPITest(APITestCase):
             amount=1,
         )
 
+        self.url_accept = reverse("accept-game-request", kwargs={"game_request_id": self.game_request.id})
+
         response = self.client.post(self.url_accept, {"is_accept": False})
+
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data, {"message": "의뢰를 거절하였습니다."})
+        self.assertEqual(GameRequest.objects.filter(id=self.game_request.id).exists(), False)
 
     def test_accept_api_game_requests_not_found_game_request(self):
         self.token = str(TokenObtainPairSerializer.get_token(self.mate).access_token)

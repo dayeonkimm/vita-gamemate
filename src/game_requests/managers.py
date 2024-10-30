@@ -1,4 +1,4 @@
-from django.db import models
+from django.db import models, transaction
 
 
 class GameRequestManager(models.Manager):
@@ -27,7 +27,6 @@ class GameRequestManager(models.Manager):
         return game_request
 
     def reject(self, game_request):
-        game_request.status = False
-        game_request.save()
+        game_request.delete()
 
-        return game_request
+        return None

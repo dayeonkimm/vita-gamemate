@@ -40,6 +40,7 @@ class GameRequestOrderedSerializer(serializers.ModelSerializer):
             "request_date",
             "request_amount",
             "request_price",
+            "review_status",
         ]
 
 
@@ -68,6 +69,7 @@ class GameRequestReceivedSerializer(serializers.ModelSerializer):
             "request_date",
             "request_amount",
             "request_price",
+            "review_status",
         ]
 
 
