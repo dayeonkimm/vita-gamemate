@@ -9,7 +9,7 @@ class MessageSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Message
-        fields = ("id", "sender_nickname", "text", "timestamp")
+        fields = ("id", "sender_nickname", "message", "timestamp")
 
     def get_sender_nickname(self, obj):
         return obj.sender.nickname

@@ -93,10 +93,10 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 "chat_list",
                 {
                     "type": "chat_list_update",
-                    "room_id": self.room_id,
-                    "last_message": message,
+                    "id": self.room_id,
+                    "latest_message": message,
                     "sender_nickname": sender_nickname,
-                    "timestamp": message_obj.created_at.isoformat(),
+                    "lastest_message_time": message_obj.created_at.isoformat(),
                 },
             )
 
@@ -131,7 +131,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         sender = User.objects.get(nickname=sender_nickname)
 
         # 메시지를 생성하고 데이터베이스에 저장
-        message = Message.objects.create(room=room, sender=sender, text=message_text)
+        message = Message.objects.create(room=room, sender=sender, message=message_text)
 
         return message
 

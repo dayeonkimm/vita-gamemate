@@ -25,9 +25,9 @@ class MessageModelTest(TestCase):
         ChatRoomUser.objects.create(chatroom=self.chatroom, user=self.main_user)
         ChatRoomUser.objects.create(chatroom=self.chatroom, user=self.other_user)
 
-        self.message = Message.objects.create(room=self.chatroom, sender=self.main_user, text="하이")
+        self.message = Message.objects.create(room=self.chatroom, sender=self.main_user, message="하이")
 
     def test_message_creation(self):
         self.assertEqual(self.message.sender, self.main_user)
-        self.assertEqual(self.message.text, "하이")
+        self.assertEqual(self.message.message, "하이")
         self.assertEqual(self.message.room, self.chatroom)

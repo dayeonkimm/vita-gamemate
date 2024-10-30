@@ -30,7 +30,7 @@ class ChatMessageAPITest(APITestCase):
         self.client.credentials(HTTP_AUTHORIZATION="Bearer " + self.token)
 
     def test_list_messages_success(self):
-        Message.objects.create(room=self.chatroom, sender=self.main_user, text="하이!")
+        Message.objects.create(room=self.chatroom, sender=self.main_user, message="하이!")
         response = self.client.get(self.list_messages_url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
