@@ -42,7 +42,6 @@ class ReviewSerializerValidationTestCase(APITestCase):
         }
         response = self.client.post(self.url, data)
 
-        print("Response data:", response.data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data["content"], "정상적인 리뷰 작성")
         self.assertEqual(response.data["rating"], 4.0)
