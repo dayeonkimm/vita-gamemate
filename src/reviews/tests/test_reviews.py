@@ -78,6 +78,7 @@ class GameReviewCreateAPIViewTest(APITestCase):
             mate_id=self.user2.id,
             game=self.game,
             price=3000,
+            status=True,
         )
         self.game_request.title = "게임 목록 조회"
 
@@ -108,18 +109,16 @@ class GameReviewCreateAPIViewTest(APITestCase):
 
     def test_create_review_already_exists(self):
         # Given: 동일한 게임 요청에 대한 리뷰가 이미 존재할 때
-        # 이미 존재하는 리뷰를 DB에 생성 / 중복 리뷰 방지
         Review.objects.create(game_request=self.game_request, rating=5.0, content="이미 존재하는 리뷰")
 
         # When: 동일한 게임 요청으로 리뷰 생성 시도
-        # 이미 리뷰 존재하는 game_request에 새로운 래뷰 생성 시도
         data = {"game_request": self.game_request.id, "rating": 4.0, "content": "새로운 리뷰"}
         response = self.client.post(self.url, data, format="json", HTTP_AUTHORIZATION=f"Bearer {str(self.refresh.access_token)}")
-        # 올바른 인증 토큰 사용 - self.client.post()에 post 요청
 
         # Then: 400 Bad Request 응답을 받아야 하고, 오류 메시지가 포함
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.data["error"], "해당 게임 요청에 대한 리뷰는 이미 존재합니다.")
+        self.assertIn("game_request", response.data)
+        self.assertEqual(response.data["game_request"][0], "review의 game request은/는 이미 존재합니다.")
 
     def test_create_review_missing_authorization(self):  # 성공
         # When: 인증 없이 리뷰 생성 요청

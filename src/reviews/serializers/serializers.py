@@ -26,17 +26,27 @@ class PaginatedReviewSerializer(serializers.Serializer):
 
 
 class AllReviewSerializer(serializers.ModelSerializer):
+
     class Meta:
         model = Review
         fields = ["game_request", "rating", "content", "created_at"]
 
-    def validate(self, data):  # 게임 요청이 사용자와 연결 되어있는지 확인하는 유호성 검사
+    def validate(self, data):
         request = self.context.get("request")
         user = request.user
         game_request = data["game_request"]
 
+        # 게임 요청이 사용자와 연결되어 있는지 확인
         if game_request.user != user:
             raise serializers.ValidationError("본인이 의뢰한 게임에 대해서만 리뷰를 작성할 수 있습니다.")
+
+        # 게임 요청이 완료 상태인지 확인
+        if not game_request.status:
+            raise serializers.ValidationError("완료되지 않은 게임 요청에 대해서는 리뷰를 작성할 수 없습니다.")
+
+        # 이미 리뷰가 작성되었는지 확인
+        if game_request.review_status:
+            raise serializers.ValidationError("해당 게임 요청에 대한 리뷰는 이미 존재합니다.")
 
         return data
 

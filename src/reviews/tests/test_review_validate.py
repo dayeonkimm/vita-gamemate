@@ -27,7 +27,7 @@ class ReviewSerializerValidationTestCase(APITestCase):
         # 게임과 게임 요청 생성
         self.game = Game.objects.create(name="lol")
         self.game_request = GameRequest.objects.create(
-            user_id=self.user.id, mate_id=self.other_user.id, game=self.game, price=500, amount=1  # user ID로 설정  # mate ID로 설정
+            user_id=self.user.id, mate_id=self.other_user.id, game=self.game, price=500, amount=1, status=True  # status 값을 True로 설정
         )
 
     def test_validate_review_with_correct_user(self):
@@ -41,6 +41,7 @@ class ReviewSerializerValidationTestCase(APITestCase):
             "content": "정상적인 리뷰 작성",
         }
         response = self.client.post(self.url, data)
+
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data["content"], "정상적인 리뷰 작성")
         self.assertEqual(response.data["rating"], 4.0)
