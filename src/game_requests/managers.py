@@ -30,3 +30,8 @@ class GameRequestManager(models.Manager):
         game_request.delete()
 
         return None
+
+    def cancel(self, game_request):
+        game_request.delete()
+
+        return None

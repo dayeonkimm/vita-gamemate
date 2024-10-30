@@ -46,6 +46,7 @@ class GameRequestAPITest(APITestCase):
         self.url_ordered = reverse("ordered-game-request")
         self.url_received = reverse("received-game-request")
         self.url_accept = reverse("accept-game-request", kwargs={"game_request_id": self.game_request.id})
+        self.url_cancel = reverse("cancel-game-request", kwargs={"game_request_id": self.game_request.id})
 
         self.token = str(TokenObtainPairSerializer.get_token(self.user).access_token)
         self.client.credentials(HTTP_AUTHORIZATION="Bearer " + self.token)
@@ -194,6 +195,12 @@ class GameRequestAPITest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data, {"message": "의뢰를 거절하였습니다."})
         self.assertEqual(GameRequest.objects.filter(id=self.game_request.id).exists(), False)
+
+    def test_cancel_game_requests_success(self):
+        response = self.client.post(self.url_cancel)
+
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(GameRequest.objects.filter(id=self.game_request.id).exists())
 
     def test_accept_api_game_requests_not_found_game_request(self):
         self.token = str(TokenObtainPairSerializer.get_token(self.mate).access_token)

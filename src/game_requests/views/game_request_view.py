@@ -112,3 +112,26 @@ class GameRequestAcceptAPIView(APIView):
         if is_accept is True:
             GameRequest.objects.accept(game_request)
             return Response({"message": "의뢰를 수락했습니다."}, status=status.HTTP_200_OK)
+
+
+class GameRequestCancelAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, game_request_id):
+        user = request.user
+
+        try:
+            game_request = GameRequest.objects.get_game_request_from_id(id=game_request_id)
+
+        except GameRequest.DoesNotExist:
+            return Response({"error": "해당하는 게임 의뢰를 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
+
+        if not game_request.user.id == user.id:
+            return Response({"error": "의뢰한 사용자가 일치하지 않습니다."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if game_request.status is True:
+            return Response({"error": "이미 해당하는 게임 의뢰를 수락하여 취소할 수 없습니다."}, status=status.HTTP_400_BAD_REQUEST)
+
+        GameRequest.objects.cancel(game_request)
+
+        return Response({"message": "의뢰를 취소하였습니다."}, status=status.HTTP_204_NO_CONTENT)
