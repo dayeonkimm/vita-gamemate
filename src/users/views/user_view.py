@@ -206,6 +206,12 @@ class UserMeAPIView(APIView):
         },
     )
     def patch(self, request):
+        new_nickname = request.data.get("nickname", None)
+
+        if new_nickname:
+            if User.objects.filter(nickname=new_nickname).exclude(id=request.user.id).exists():
+                return Response({"error": "닉네임이 이미 사용 중입니다."}, status=status.HTTP_400_BAD_REQUEST)
+
         serializer = UserProfileSerializer(request.user, data=request.data)
 
         if not serializer.is_valid():
