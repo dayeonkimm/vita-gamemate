@@ -4,15 +4,8 @@ import os
 import requests
 from django.conf import settings
 from rest_framework import generics, status
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-
-from users.exceptions import (
-    InvalidAuthorizationHeader,
-    MissingAuthorizationHeader,
-    TokenMissing,
-    UserNotFound,
-)
-from users.services.user_service import UserService
 
 from .models import Payment
 from .serializers import PaymentSerializer
@@ -20,15 +13,10 @@ from .serializers import PaymentSerializer
 
 class TossPaymentView(generics.GenericAPIView):
     serializer_class = PaymentSerializer
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        authorization_header = self.request.headers.get("Authorization")
-
-        try:
-            user = UserService.get_user_from_token(authorization_header)
-        except (MissingAuthorizationHeader, InvalidAuthorizationHeader, TokenMissing, UserNotFound) as e:
-            return Response({"message": str(e)}, status=e.status_code)
-
+        user = request.user
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
             # 유효한 데이터 가져오기
@@ -93,15 +81,10 @@ class TossPaymentView(generics.GenericAPIView):
 
 class UserPaymentListView(generics.ListAPIView):
     serializer_class = PaymentSerializer
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        authorization_header = self.request.headers.get("Authorization")
-
-        try:
-            user = UserService.get_user_from_token(authorization_header)
-        except (MissingAuthorizationHeader, InvalidAuthorizationHeader, TokenMissing, UserNotFound) as e:
-            return Response({"message": str(e)}, status=e.status_code)
-
+        user = self.request.user
         return Payment.objects.filter(user=user).order_by("-requested_at")
 
     def get(self, request, *args, **kwargs):
