@@ -77,16 +77,19 @@ class ChatRoomListView(generics.ListAPIView):
     def get_queryset(self):
         user = self.request.user
         latest_message = Message.objects.filter(room=OuterRef("pk")).order_by("-created_at")
-        other_user = ChatRoomUser.objects.filter(chatroom=OuterRef("pk")).exclude(user=user)
+        chatroom_users = ChatRoomUser.objects.filter(chatroom=OuterRef("pk")).values(
+            "user__id", "user__nickname", "user__profile_image", "unread_count"
+        )
 
         return (
             ChatRoom.objects.filter(chatroom_users__user=user)
             .annotate(
                 latest_message=Subquery(latest_message.values("message")[:1]),
                 latest_message_time=Subquery(latest_message.values("created_at")[:1]),
-                other_user_nickname=Subquery(other_user.values("user__nickname")[:1]),
-                other_user_id=Subquery(other_user.values("user__id")[:1]),
-                other_user_profile_image=Subquery(other_user.values("user__profile_image")[:1]),
+                other_user_nickname=Subquery(chatroom_users.exclude(user__id=user.id).values("user__nickname")[:1]),
+                other_user_id=Subquery(chatroom_users.exclude(user__id=user.id).values("user__id")[:1]),
+                other_user_profile_image=Subquery(chatroom_users.exclude(user__id=user.id).values("user__profile_image")[:1]),
+                unread_count=Subquery(chatroom_users.filter(user__id=user.id).values("unread_count")[:1]),
             )
             .order_by("-latest_message_time")
         )
