@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pymysql
 from dotenv import load_dotenv
+from storages.backends.s3boto3 import S3Boto3Storage
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -287,15 +288,6 @@ LOGGING = {
     },
 }
 
-STORAGES = {
-    "default": {
-        "BACKEND": "storages.backends.s3.S3Storage",
-    },
-    "staticfiles": {
-        "BACKEND": "storages.backends.s3boto3.S3StaticStorage",
-    },
-}
-
 GOOGLE_CONFIG = {
     # key
     "CLIENT_ID": os.getenv("GOOGLE_CLIENT_ID"),
@@ -333,10 +325,37 @@ AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
 AWS_STORAGE_BUCKET_NAME = os.getenv("AWS_S3_BUCKET_NAME")
 
 AWS_S3_CUSTOM_DOMAIN = f"{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com"
-AWS_LOCATION = "static"
 
-# S3에 정적 파일을 저장하도록 설정
-STATIC_URL = f"https://{AWS_STORAGE_BUCKET_NAME}/{AWS_LOCATION}/"
-STATICFILES_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
+# Static 파일 설정
+AWS_STATIC_LOCATION = "static"
+STATIC_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/{AWS_STATIC_LOCATION}/"
 
-DEFAULT_FILE_STORAGE = "storages.backends.s3.S3Storage"
+# Media 파일 설정
+AWS_MEDIA_LOCATION = "media"
+MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/{AWS_MEDIA_LOCATION}/"
+
+
+# S3 스토리지 클래스 정의
+class StaticStorage(S3Boto3Storage):
+    location = AWS_STATIC_LOCATION
+
+
+class MediaStorage(S3Boto3Storage):
+    location = AWS_MEDIA_LOCATION
+
+
+# 스토리지 설정
+STORAGES = {
+    "default": {
+        "BACKEND": "config.settings.MediaStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "config.settings.StaticStorage",
+    },
+}
+
+# Static 파일 저장소 설정
+STATICFILES_STORAGE = "config.settings.StaticStorage"
+
+# Media 파일 저장소 설정
+DEFAULT_FILE_STORAGE = "config.settings.MediaStorage"
