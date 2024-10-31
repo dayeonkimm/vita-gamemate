@@ -15,7 +15,8 @@ from users.managers import UserManager
 from users.models.user_model import User
 from users.services.user_service import UserService
 
-from .models import ChatRoom, Message
+from .models import ChatRoom, ChatRoomUser, Message
+from .services import ChatService
 
 logger = logging.getLogger("channels")
 
@@ -24,16 +25,16 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
     async def connect(self):
         logger.debug("WebSocket connection attempt")
-        # access_token = self.scope["query_string"].decode("utf-8").split("token=")[-1]
+        access_token = self.scope["query_string"].decode("utf-8").split("token=")[-1]
 
-        # try:
-        #     self.user = await self.get_user_from_access_token(access_token)
+        try:
+            self.user = await self.get_user_from_access_token(access_token)
 
-        #     if not self.user.is_authenticated:
-        #         await self.close()
+            if not self.user.is_authenticated:
+                await self.close()
 
-        # except (MissingAuthorizationHeader, InvalidAuthorizationHeader, TokenMissing, UserNotFound):
-        #     await self.close()
+        except (MissingAuthorizationHeader, InvalidAuthorizationHeader, TokenMissing, UserNotFound):
+            await self.close()
 
         logger.debug(f"WebSocket connection attempt for room_id: {self.scope['url_route']['kwargs'].get('room_id')}")
         try:
@@ -42,10 +43,13 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             if not await self.check_room_exists(self.room_id):  # 방이 존재하는지 확인
                 raise ValueError("채팅방이 존재하지 않습니다.")
 
-            group_name = self.get_group_name(self.room_id)  # 방 ID를 사용하여 그룹 이름 가져옴
+            self.group_name = self.get_group_name(self.room_id)  # 방 ID를 사용하여 그룹 이름 가져옴
+            self.receiver_id = await self.get_receiver_id(self.room_id, self.user.id)
 
-            await self.channel_layer.group_add(group_name, self.channel_name)  # 현재 채널을 그룹에 추가
+            await self.channel_layer.group_add(self.group_name, self.channel_name)  # 현재 채널을 그룹에 추가
             await self.accept()  # WebSocket 연결 수락
+            # 채팅방 입장 시 안 읽은 메시지 수 초기화
+            await self.reset_unread_count(self.room_id, self.user.id)
             logger.debug(f"WebSocket connection accepted for room_id: {self.room_id}")
 
         except Exception as e:
@@ -77,6 +81,9 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             # 수신된 메시지를 데이터베이스에 저장
             message_obj = await self.save_message(self.room_id, sender_nickname, message)
 
+            # 메시지 수신자의 안 읽은 메시지 수 증가
+            await self.increment_unread_count(self.room_id, self.receiver_id)
+
             # 메시지를 전체 그룹에 전송
             await self.channel_layer.group_send(
                 group_name,
@@ -96,7 +103,8 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                     "id": self.room_id,
                     "latest_message": message,
                     "sender_nickname": sender_nickname,
-                    "lastest_message_time": message_obj.created_at.isoformat(),
+                    "latest_message_time": message_obj.created_at.isoformat(),
+                    "updated_user_id": self.receiver_id,
                 },
             )
 
@@ -144,19 +152,32 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
     def get_user_from_access_token(self, access_token):
         return UserService.get_user_from_access_token(access_token)
 
+    @database_sync_to_async
+    def get_receiver_id(self, room_id, sender_id):
+        # 1대1 채팅방에서 sender를 제외한 다른 사용자(수신자)의 ID를 반환
+        return ChatRoomUser.objects.filter(chatroom_id=room_id).exclude(user_id=sender_id).values_list("user_id", flat=True).first()
+
+    @database_sync_to_async
+    def increment_unread_count(self, room_id, user_id):
+        ChatService.increment_unread_count(room_id, user_id)
+
+    @database_sync_to_async
+    def reset_unread_count(self, room_id, user_id):
+        ChatService.reset_unread_count(room_id, user_id)
+
 
 class ChatListConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self):
-        # access_token = self.scope["query_string"].decode("utf-8").split("token=")[-1]
+        access_token = self.scope["query_string"].decode("utf-8").split("token=")[-1]
 
-        # try:
-        #     self.user = await self.get_user_from_access_token(access_token)
+        try:
+            self.user = await self.get_user_from_access_token(access_token)
 
-        #     if not self.user.is_authenticated:
-        #         await self.close()
+            if not self.user.is_authenticated:
+                await self.close()
 
-        # except (MissingAuthorizationHeader, InvalidAuthorizationHeader, TokenMissing, UserNotFound):
-        #     await self.close()
+        except (MissingAuthorizationHeader, InvalidAuthorizationHeader, TokenMissing, UserNotFound):
+            await self.close()
 
         await self.channel_layer.group_add("chat_list", self.channel_name)
         await self.accept()
@@ -170,7 +191,29 @@ class ChatListConsumer(AsyncJsonWebsocketConsumer):
         logger.debug(f"Received content in chat list: {content}")
 
     async def chat_list_update(self, event):
-        await self.send_json(event)
+        room_id = event["id"]
+        updated_user_id = event.get("updated_user_id")
+
+        # 현재 사용자가 업데이트된 사용자인 경우에만 unread_count를 가져옴
+        if self.user.id == updated_user_id:
+            unread_count = await self.get_unread_count(room_id, self.user.id)
+        else:
+            unread_count = None
+
+        await self.send_json(
+            {
+                "type": "chat_list_update",
+                "room_id": room_id,
+                "latest_message": event["latest_message"],
+                "sender_nickname": event["sender_nickname"],
+                "latest_message_time": event["latest_message_time"],
+                "unread_count": unread_count,
+            }
+        )
+
+    @database_sync_to_async
+    def get_unread_count(self, room_id, user_id):
+        return ChatService.get_unread_count(room_id, user_id)
 
     @sync_to_async
     def get_user_from_access_token(self, access_token):

@@ -16,7 +16,7 @@ class MessageSerializer(serializers.ModelSerializer):
         return obj.sender.nickname
 
     def get_timestamp(self, obj):
-        return obj.updated_at
+        return obj.created_at
 
 
 class ChatRoomSerializer(serializers.ModelSerializer):
