@@ -1,3 +1,4 @@
+from django.conf import settings
 from rest_framework import serializers
 
 from .models import ChatRoom, Message
@@ -62,7 +63,7 @@ class ChatRoomListSerializer(serializers.ModelSerializer):
     main_user_nickname = serializers.SerializerMethodField()
     other_user_nickname = serializers.CharField()
     other_user_id = serializers.IntegerField()
-    other_user_profile_image = serializers.URLField()
+    other_user_profile_image = serializers.SerializerMethodField()
     latest_message = serializers.CharField(allow_null=True)
     latest_message_time = serializers.DateTimeField(allow_null=True)
 
@@ -81,3 +82,8 @@ class ChatRoomListSerializer(serializers.ModelSerializer):
 
     def get_main_user_nickname(self, obj):
         return self.context["request"].user.nickname
+
+    def get_other_user_profile_image(self, obj):
+        if obj.other_user_profile_image:
+            return f"{settings.MEDIA_URL}{obj.other_user_profile_image}"
+        return None
