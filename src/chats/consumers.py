@@ -203,7 +203,7 @@ class ChatListConsumer(AsyncJsonWebsocketConsumer):
         await self.send_json(
             {
                 "type": "chat_list_update",
-                "room_id": room_id,
+                "id": room_id,
                 "latest_message": event["latest_message"],
                 "sender_nickname": event["sender_nickname"],
                 "latest_message_time": event["latest_message_time"],
