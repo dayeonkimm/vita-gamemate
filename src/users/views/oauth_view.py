@@ -61,15 +61,13 @@ class GoogleLoginCallbackAPIView(APIView):
         return f"user{random_str}"
 
     def ensure_unique_nickname(self, nickname):
-        """중복되지 않는 닉네임을 보장하기 위한 함수"""
+        """닉네임 중복 시 뒤에 랜덤 숫자 2개 추가"""
         while True:
             try:
                 User.objects.get(nickname=nickname)
-                # 닉네임이 중복되면 랜덤 숫자 2개 추가
-                random_suffix = random.randint(10, 99)  # 10에서 99 사이의 랜덤 숫자 생성
+                random_suffix = random.randint(10, 99)
                 nickname = f"{nickname}_{random_suffix}"
             except ObjectDoesNotExist:
-                # 중복되지 않으면 종료
                 break
         return nickname
 
@@ -182,15 +180,13 @@ class KakaoLoginCallbackAPIView(APIView):
         return f"user{random_str}"
 
     def ensure_unique_nickname(self, nickname):
-        """중복되지 않는 닉네임을 보장하기 위한 함수"""
+        """닉네임 중복 시 뒤에 랜덤 숫자 2개 추가"""
         while True:
             try:
                 User.objects.get(nickname=nickname)
-                # 닉네임이 중복되면 랜덤 숫자 2개 추가
-                random_suffix = random.randint(10, 99)  # 10에서 99 사이의 랜덤 숫자 생성
+                random_suffix = random.randint(10, 99)
                 nickname = f"{nickname}_{random_suffix}"
             except ObjectDoesNotExist:
-                # 중복되지 않으면 종료
                 break
         return nickname
 
