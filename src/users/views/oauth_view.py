@@ -226,7 +226,7 @@ class KakaoLoginCallbackAPIView(APIView):
         user_data = self.klc.get_user_info(auth_headers=auth_headers)
 
         profile_data = user_data["kakao_account"]["profile"]
-        nickname = profile_data["nickname"] if profile_data["name"] else self.generate_random_nickname()
+        nickname = profile_data["nickname"] if profile_data["nickname"] else self.generate_random_nickname()
 
         email = user_data["kakao_account"]["email"]
         social_provider = "kakao"
