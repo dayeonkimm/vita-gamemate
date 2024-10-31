@@ -77,7 +77,7 @@ class ChatRoomListSerializer(serializers.ModelSerializer):
             "other_user_profile_image",
             "latest_message",
             "latest_message_time",
-            "updated_at",
+            "created_at",
         )
 
     def get_main_user_nickname(self, obj):
