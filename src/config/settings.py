@@ -334,6 +334,7 @@ STATIC_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/{AWS_STATIC_LOCATION}/"
 AWS_MEDIA_LOCATION = "media"
 MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/{AWS_MEDIA_LOCATION}/"
 
+
 # S3 스토리지 클래스 정의
 class StaticStorage(S3Boto3Storage):
     location = AWS_STATIC_LOCATION
