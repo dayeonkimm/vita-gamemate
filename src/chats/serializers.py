@@ -16,7 +16,7 @@ class MessageSerializer(serializers.ModelSerializer):
         return obj.sender.nickname
 
     def get_timestamp(self, obj):
-        return obj.updated_at
+        return obj.created_at
 
 
 class ChatRoomSerializer(serializers.ModelSerializer):
@@ -77,7 +77,7 @@ class ChatRoomListSerializer(serializers.ModelSerializer):
             "other_user_profile_image",
             "latest_message",
             "latest_message_time",
-            "created_at",
+            "updated_at",
         )
 
     def get_main_user_nickname(self, obj):
