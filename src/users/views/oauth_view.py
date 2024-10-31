@@ -1,3 +1,7 @@
+import random
+import string
+
+from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import redirect
 from django.utils import timezone
 from drf_spectacular.types import OpenApiTypes
@@ -51,6 +55,22 @@ class GoogleLoginCallbackAPIView(APIView):
     glc.profile_uri = GOOGLE_CONFIG["PROFILE_URI"]
     glc.redirect_uri = GOOGLE_CONFIG["REDIRECT_URI"]
 
+    def generate_random_nickname(self):
+        """랜덤한 닉네임 생성"""
+        random_str = "".join(random.choices(string.ascii_letters + string.digits, k=3))
+        return f"user{random_str}"
+
+    def ensure_unique_nickname(self, nickname):
+        """닉네임 중복 시 뒤에 랜덤 숫자 2개 추가"""
+        while True:
+            try:
+                User.objects.get(nickname=nickname)
+                random_suffix = random.randint(10, 99)
+                nickname = f"{nickname}_{random_suffix}"
+            except ObjectDoesNotExist:
+                break
+        return nickname
+
     @extend_schema(
         methods=["POST"],
         tags=["oauth"],
@@ -87,8 +107,10 @@ class GoogleLoginCallbackAPIView(APIView):
         user_data = self.glc.get_user_info(auth_headers=auth_headers)
 
         email = user_data["email"]
-        nickname = user_data["name"]
+        nickname = user_data["name"] if user_data["name"] else self.generate_random_nickname()
         social_provider = "google"
+
+        nickname = self.ensure_unique_nickname(nickname)
 
         try:
             user = User.objects.get_user_by_email_and_social_provider(email=email, social_provider=social_provider)
@@ -152,6 +174,22 @@ class KakaoLoginCallbackAPIView(APIView):
     klc.profile_uri = KAKAO_CONFIG["PROFILE_URI"]
     klc.redirect_uri = KAKAO_CONFIG["REDIRECT_URI"]
 
+    def generate_random_nickname(self):
+        """랜덤한 닉네임 생성"""
+        random_str = "".join(random.choices(string.ascii_letters + string.digits, k=3))
+        return f"user{random_str}"
+
+    def ensure_unique_nickname(self, nickname):
+        """닉네임 중복 시 뒤에 랜덤 숫자 2개 추가"""
+        while True:
+            try:
+                User.objects.get(nickname=nickname)
+                random_suffix = random.randint(10, 99)
+                nickname = f"{nickname}_{random_suffix}"
+            except ObjectDoesNotExist:
+                break
+        return nickname
+
     @extend_schema(
         methods=["POST"],
         tags=["oauth"],
@@ -188,10 +226,12 @@ class KakaoLoginCallbackAPIView(APIView):
         user_data = self.klc.get_user_info(auth_headers=auth_headers)
 
         profile_data = user_data["kakao_account"]["profile"]
-        nickname = profile_data["nickname"]
+        nickname = profile_data["nickname"] if profile_data["nickname"] else self.generate_random_nickname()
 
         email = user_data["kakao_account"]["email"]
         social_provider = "kakao"
+
+        nickname = self.ensure_unique_nickname(nickname)
 
         try:
             user = User.objects.get_user_by_email_and_social_provider(email=email, social_provider=social_provider)

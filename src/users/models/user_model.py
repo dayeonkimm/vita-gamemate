@@ -18,7 +18,7 @@ class Gender(models.TextChoices):
 
 
 class User(AbstractBaseUser, PermissionsMixin):
-    nickname = models.CharField(max_length=10, null=True, blank=True)
+    nickname = models.CharField(max_length=20, unique=True, null=True, blank=True)
     email = models.EmailField(unique=True)
     password = models.CharField(max_length=255)
     gender = models.CharField(max_length=10, choices=Gender.choices, blank=True, null=True)
