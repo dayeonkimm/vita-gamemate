@@ -12,6 +12,7 @@ class ChatRoom(models.Model):
 class ChatRoomUser(models.Model):
     chatroom = models.ForeignKey(ChatRoom, on_delete=models.CASCADE, related_name="chatroom_users")
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="user_chatrooms")
+    unread_count = models.IntegerField(default=0)
 
     class Meta:
         unique_together = ("chatroom", "user")
@@ -21,5 +22,4 @@ class Message(models.Model):
     room = models.ForeignKey(ChatRoom, on_delete=models.CASCADE, related_name="messages")
     sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name="message_sender")
     message = models.TextField()
-    updated_at = models.DateTimeField(auto_now=True)
     created_at = models.DateTimeField(auto_now_add=True)
