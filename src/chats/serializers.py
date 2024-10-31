@@ -66,6 +66,7 @@ class ChatRoomListSerializer(serializers.ModelSerializer):
     other_user_profile_image = serializers.SerializerMethodField()
     latest_message = serializers.CharField(allow_null=True)
     latest_message_time = serializers.DateTimeField(allow_null=True)
+    unread_count = serializers.IntegerField()
 
     class Meta:
         model = ChatRoom
@@ -78,6 +79,7 @@ class ChatRoomListSerializer(serializers.ModelSerializer):
             "latest_message",
             "latest_message_time",
             "updated_at",
+            "unread_count",
         )
 
     def get_main_user_nickname(self, obj):
