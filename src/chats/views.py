@@ -8,14 +8,7 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from users.exceptions import (
-    InvalidAuthorizationHeader,
-    MissingAuthorizationHeader,
-    TokenMissing,
-    UserNotFound,
-)
 from users.models import User
-from users.services.user_service import UserService
 
 from .models import ChatRoom, ChatRoomUser, Message
 from .serializers import ChatRoomListSerializer, ChatRoomSerializer, MessageSerializer
@@ -26,7 +19,7 @@ class ChatRoomCreateView(generics.CreateAPIView):
     serializer_class = ChatRoomSerializer
 
     def create(self, request, *args, **kwargs):
-        main_user = self.get_user_from_token()
+        main_user = request.user
         other_user = self.get_other_user()
 
         existing_chatroom = self.get_existing_chatroom(main_user, other_user)
@@ -34,13 +27,6 @@ class ChatRoomCreateView(generics.CreateAPIView):
             return self.handle_existing_chatroom(existing_chatroom, other_user)
 
         return self.create_new_chatroom(main_user, other_user)
-
-    def get_user_from_token(self):
-        authorization_header = self.request.headers.get("Authorization")
-        try:
-            return UserService.get_user_from_token(authorization_header)
-        except (MissingAuthorizationHeader, InvalidAuthorizationHeader, TokenMissing, UserNotFound) as e:
-            raise ValidationError({"message": str(e)})
 
     def get_other_user(self):
         other_user_nickname = self.request.data.get("other_user_nickname")
@@ -89,7 +75,7 @@ class ChatRoomListView(generics.ListAPIView):
     serializer_class = ChatRoomListSerializer
 
     def get_queryset(self):
-        user = self.get_user_from_token()
+        user = self.request.user
         latest_message = Message.objects.filter(room=OuterRef("pk")).order_by("-created_at")
         other_user = ChatRoomUser.objects.filter(chatroom=OuterRef("pk")).exclude(user=user)
 
@@ -105,13 +91,6 @@ class ChatRoomListView(generics.ListAPIView):
             .order_by("-latest_message_time")
         )
 
-    def get_user_from_token(self):
-        authorization_header = self.request.headers.get("Authorization")
-        try:
-            return UserService.get_user_from_token(authorization_header)
-        except (MissingAuthorizationHeader, InvalidAuthorizationHeader, TokenMissing, UserNotFound) as e:
-            raise ValidationError({"message": str(e)})
-
 
 class MessagePagination(PageNumberPagination):
     page_size = 20
@@ -125,7 +104,7 @@ class MessageListView(generics.ListAPIView):
     pagination_class = MessagePagination
 
     def get_queryset(self):
-        user = self.get_user_from_token()
+        user = self.request.user
         room_id = self.kwargs.get("room_id")
 
         if not room_id:
@@ -137,10 +116,3 @@ class MessageListView(generics.ListAPIView):
             raise Http404("해당 room_id로 메시지를 찾을 수 없습니다.")
 
         return queryset
-
-    def get_user_from_token(self):
-        authorization_header = self.request.headers.get("Authorization")
-        try:
-            return UserService.get_user_from_token(authorization_header)
-        except (MissingAuthorizationHeader, InvalidAuthorizationHeader, TokenMissing, UserNotFound) as e:
-            raise ValidationError({"message": str(e)})
