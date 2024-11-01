@@ -11,7 +11,7 @@ from reviews.serializers.serializers import (
     GameReviewSerializer,
     ReviewSerializer,
 )
-from reviews.utils import ReviewPagination
+from reviews.utils import ReviewPagination, UserGameReviewPagination
 
 
 class ReviewListView(ListCreateAPIView):
@@ -78,7 +78,7 @@ class GameRequestReviewListAPIView(APIView):
 
 # 2. 특정 사용자의 특정 게임 리뷰 조회
 class UserGameReviewListAPIView(APIView):
-    pagination_class = ReviewPagination
+    pagination_class = UserGameReviewPagination
 
     def get(self, request, user_id, game_id):
         reviews = Review.objects.filter(game_request__user_id=user_id, game_request__game_id=game_id).order_by("-created_at")
