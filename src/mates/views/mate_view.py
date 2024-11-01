@@ -1,4 +1,5 @@
 from django.core.exceptions import ValidationError
+from django.db.models import Avg
 from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -69,7 +70,7 @@ class MateGameInfoListView(generics.ListAPIView):
             queryset = queryset.order_by("-mategameinfo__created_at")
 
         elif sort == "rating_desc":
-            queryset = queryset.order_by("-mategameinfo__created_at")  # 평점순 (필드 및 수정 필요)
+            queryset = queryset.annotate(avg_rating=Avg("gamerequest__review__rating")).order_by("-avg_rating")
 
         elif sort == "price_asc":
             queryset = queryset.order_by("mategameinfo__request_price")
