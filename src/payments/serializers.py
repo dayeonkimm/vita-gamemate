@@ -3,6 +3,12 @@ from rest_framework import serializers
 from .models import Payment
 
 
+class PaymentCreateSerializer(serializers.Serializer):
+    payment_key = serializers.CharField()
+    order_id = serializers.CharField()
+    amount = serializers.IntegerField()
+
+
 class PaymentSerializer(serializers.ModelSerializer):
 
     user_nickname = serializers.SerializerMethodField()

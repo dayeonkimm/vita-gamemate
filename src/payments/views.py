@@ -8,18 +8,17 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from .models import Payment
-from .serializers import PaymentSerializer
+from .serializers import PaymentCreateSerializer, PaymentSerializer
 
 
 class TossPaymentView(generics.GenericAPIView):
-    serializer_class = PaymentSerializer
+    serializer_class = PaymentCreateSerializer
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
         user = request.user
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
-            # 유효한 데이터 가져오기
             payment_key = serializer.validated_data["payment_key"]
             order_id = serializer.validated_data["order_id"]
             amount = serializer.validated_data["amount"]
