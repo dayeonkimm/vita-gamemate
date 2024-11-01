@@ -34,47 +34,68 @@ redis_client = get_redis_client()
 class ChatService:
     @staticmethod
     def get_unread_count(room_id, user_id):
-        cache_key = f"unread_count:{room_id}:{user_id}"
+        try:
+            cache_key = f"unread_count:{room_id}:{user_id}"
 
-        cached_count = redis_client.get(cache_key)
-        if cached_count is not None:
-            return int(cached_count)
+            if redis_client is not None:
+                cached_count = redis_client.get(cache_key)
+                if cached_count is not None:
+                    return int(cached_count)
 
-        chatroom_user = ChatRoomUser.objects.get(chatroom_id=room_id, user_id=user_id)
-        count = chatroom_user.unread_count
+            chatroom_user = ChatRoomUser.objects.get(chatroom_id=room_id, user_id=user_id)
+            count = chatroom_user.unread_count
 
-        redis_client.setex(cache_key, 300, count)
+            if redis_client is not None:
+                redis_client.setex(cache_key, 300, count)
 
-        return count
+            return count
+        except redis.RedisError as e:
+            logger.error(f"Redis error in get_unread_count: {str(e)}")
+        except ChatRoomUser.DoesNotExist:
+            logger.error(f"ChatRoomUser not found for room_id={room_id}, user_id={user_id}")
+            return 0
+        except Exception as e:
+            logger.error(f"Unexpected error in get_unread_count: {str(e)}")
+            return 0
 
     @staticmethod
     def increment_unread_count(room_id, receiver_id):
-        # 데이터베이스 업데이트
-        ChatRoomUser.objects.filter(chatroom_id=room_id, user_id=receiver_id).update(unread_count=F("unread_count") + 1)
-        # Redis 캐시 업데이트
-        if redis_client is not None:
-            cache_key = f"unread_count:{room_id}:{receiver_id}"
-            redis_client.incr(cache_key)
+        try:
+            updated = ChatRoomUser.objects.filter(chatroom_id=room_id, user_id=receiver_id).update(unread_count=F("unread_count") + 1)
+
+            if updated == 0:
+                logger.warning(f"No ChatRoomUser found for room_id={room_id}, receiver_id={receiver_id}")
+                return
+
+            if redis_client is not None:
+                try:
+                    cache_key = f"unread_count:{room_id}:{receiver_id}"
+                    redis_client.incr(cache_key)
+                except redis.RedisError as e:
+                    logger.error(f"Redis error in increment_unread_count: {str(e)}")
+            else:
+                logger.warning("Redis client is not available. Skipping cache update.")
+
+        except Exception as e:
+            logger.error(f"Unexpected error in increment_unread_count: {str(e)}")
 
     @staticmethod
     def reset_unread_count(room_id, user_id):
-        chatroom_user = ChatRoomUser.objects.get(chatroom_id=room_id, user_id=user_id)
-        chatroom_user.unread_count = 0
-        chatroom_user.save()
+        try:
+            # 데이터베이스 업데이트
+            chatroom_user = ChatRoomUser.objects.get(chatroom_id=room_id, user_id=user_id)
+            chatroom_user.unread_count = 0
+            chatroom_user.save()
 
-        cache_key = f"unread_count:{room_id}:{user_id}"
-        redis_client.set(cache_key, 0)
-
-    # @staticmethod
-    # def get_user_chatrooms(user_id):
-    #     chatrooms = ChatRoom.objects.filter(chatroomuser__user_id=user_id)
-    #     result = []
-    #     for chatroom in chatrooms:
-    #         unread_count = ChatService.get_unread_count(chatroom.id, user_id)
-    #         result.append({
-    #             'id': chatroom.id,
-    #             'name': chatroom.name,
-    #             'unread_count': unread_count,
-    #             'latest_message': chatroom.message_set.order_by('-created_at').first()
-    #         })
-    #     return result
+            # Redis 캐시 업데이트
+            if redis_client is not None:
+                cache_key = f"unread_count:{room_id}:{user_id}"
+                redis_client.set(cache_key, 0)
+            else:
+                logger.warning("Redis client is not available. Skipping cache update.")
+        except redis.RedisError as e:
+            logger.error(f"Redis error in reset_unread_count: {str(e)}")
+        except ChatRoomUser.DoesNotExist:
+            logger.error(f"ChatRoomUser not found for room_id={room_id}, user_id={user_id}")
+        except Exception as e:
+            logger.error(f"Unexpected error in reset_unread_count: {str(e)}")

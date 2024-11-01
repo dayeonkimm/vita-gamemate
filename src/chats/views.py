@@ -41,7 +41,8 @@ class ChatRoomCreateView(generics.CreateAPIView):
         return ChatRoom.objects.filter(chatroom_users__user=main_user).filter(chatroom_users__user=other_user).first()
 
     def handle_existing_chatroom(self, chatroom, other_user):
-        Message.objects.create(room=chatroom, sender=other_user, message=f"안녕하세요 {other_user.nickname}입니다")
+        message = Message.objects.create(room=chatroom, sender=other_user, message=f"안녕하세요 {other_user.nickname}입니다")
+        chatroom.update_latest_message(message)
         context = self.get_serializer_context()
         context.update(self.get_additional_context(chatroom, other_user))
         serializer = self.get_serializer(chatroom, context=context)
@@ -51,17 +52,17 @@ class ChatRoomCreateView(generics.CreateAPIView):
         chatroom = ChatRoom.objects.create()
         ChatRoomUser.objects.create(chatroom=chatroom, user=main_user)
         ChatRoomUser.objects.create(chatroom=chatroom, user=other_user)
-        Message.objects.create(room=chatroom, sender=other_user, message=f"반갑습니다 {other_user.nickname}입니다")
+        message = Message.objects.create(room=chatroom, sender=other_user, message=f"반갑습니다 {other_user.nickname}입니다")
+        chatroom.update_latest_message(message)
         context = self.get_serializer_context()
         context.update(self.get_additional_context(chatroom, other_user))
         serializer = self.get_serializer(chatroom, context=context)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def get_additional_context(self, chatroom, other_user):
-        latest_message_data = Message.objects.filter(room=chatroom).order_by("-created_at").values("message", "created_at").first()
         return {
-            "latest_message": latest_message_data["message"] if latest_message_data else None,
-            "latest_message_time": latest_message_data["created_at"] if latest_message_data else None,
+            "latest_message": chatroom.latest_message.message if chatroom.latest_message else None,
+            "latest_message_time": chatroom.latest_message_time,
             "other_user_data": {
                 "nickname": other_user.nickname,
                 "id": other_user.id,
@@ -76,16 +77,14 @@ class ChatRoomListView(generics.ListAPIView):
 
     def get_queryset(self):
         user = self.request.user
-        latest_message = Message.objects.filter(room=OuterRef("pk")).order_by("-created_at")
         chatroom_users = ChatRoomUser.objects.filter(chatroom=OuterRef("pk")).values(
             "user__id", "user__nickname", "user__profile_image", "unread_count"
         )
 
         return (
             ChatRoom.objects.filter(chatroom_users__user=user)
+            .select_related("latest_message__sender")
             .annotate(
-                latest_message=Subquery(latest_message.values("message")[:1]),
-                latest_message_time=Subquery(latest_message.values("created_at")[:1]),
                 other_user_nickname=Subquery(chatroom_users.exclude(user__id=user.id).values("user__nickname")[:1]),
                 other_user_id=Subquery(chatroom_users.exclude(user__id=user.id).values("user__id")[:1]),
                 other_user_profile_image=Subquery(chatroom_users.exclude(user__id=user.id).values("user__profile_image")[:1]),
