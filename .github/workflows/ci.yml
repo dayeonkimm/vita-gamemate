@@ -60,7 +60,7 @@ jobs:
 
       - name: Test python project
         run: |
-          poetry run coverage run src/manage.py test
+          poetry run coverage run src/manage.py test --noinput
           poetry run coverage report -m
 
 
