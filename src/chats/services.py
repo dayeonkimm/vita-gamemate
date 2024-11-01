@@ -1,5 +1,4 @@
 import logging
-from urllib.parse import urlparse
 
 import redis
 from django.conf import settings
@@ -12,15 +11,7 @@ logger = logging.getLogger(__name__)
 
 def get_redis_client():
     try:
-        redis_url = settings.CHANNEL_LAYERS["default"]["CONFIG"]["hosts"][0]
-        parsed_url = urlparse(redis_url)
-
-        client = redis.Redis(
-            host=parsed_url.hostname,
-            port=parsed_url.port,
-            password=parsed_url.password,
-            db=2,  # 채널 레이어와 다른 데이터베이스 사용 (예: 2번)
-        )
+        client = redis.Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT, password=settings.REDIS_PASSWORD, db=2)
         client.ping()  # 연결 테스트
         return client
     except Exception as e:

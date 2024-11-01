@@ -64,7 +64,7 @@ class ChatRoomListSerializer(serializers.ModelSerializer):
     other_user_nickname = serializers.CharField()
     other_user_id = serializers.IntegerField()
     other_user_profile_image = serializers.SerializerMethodField()
-    latest_message = serializers.CharField(allow_null=True)
+    latest_message = serializers.SerializerMethodField()
     latest_message_time = serializers.DateTimeField(allow_null=True)
     unread_count = serializers.IntegerField()
 
@@ -88,4 +88,9 @@ class ChatRoomListSerializer(serializers.ModelSerializer):
     def get_other_user_profile_image(self, obj):
         if obj.other_user_profile_image:
             return f"{settings.MEDIA_URL}{obj.other_user_profile_image}"
+        return None
+
+    def get_latest_message(self, obj):
+        if obj.latest_message:
+            return obj.latest_message.message
         return None

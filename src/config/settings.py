@@ -218,7 +218,7 @@ CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [f"redis://:{os.environ.get('REDIS_PASSWORD', '')}@redis:6379/0"],
+            "hosts": [f"redis://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/0"],
         },
     },
 }
@@ -233,8 +233,6 @@ CACHES = {
         },
     }
 }
-
-REDIS_URL = f"redis://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/3"
 
 LOGGING = {
     "version": 1,
