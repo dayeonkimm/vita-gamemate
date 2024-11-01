@@ -25,6 +25,12 @@ class UserProfileSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             "email": {"required": False},
         }
+        read_only_fields = [
+            "id",
+            "email",
+            "social_provider",
+            "is_mate",
+        ]
 
     def get_is_online(self, user):
         redis_instance = get_redis_connection("default")
@@ -55,6 +61,12 @@ class UserMateSerializer(serializers.ModelSerializer):
             "is_mate",
             "is_online",
             "mate_game_info",
+        ]
+        read_only_fields = [
+            "id",
+            "email",
+            "social_provider",
+            "is_mate",
         ]
 
     def get_is_online(self, user):
