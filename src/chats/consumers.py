@@ -1,8 +1,10 @@
 import logging
 
+import redis
 from asgiref.sync import sync_to_async
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
+from django.conf import settings
 from django.utils import timezone
 
 from users.exceptions import (
@@ -19,6 +21,8 @@ from .models import ChatRoom, ChatRoomUser, Message
 from .services import ChatService
 
 logger = logging.getLogger("channels")
+
+redis_client = redis.Redis.from_url(settings.REDIS_URL)
 
 
 class ChatConsumer(AsyncJsonWebsocketConsumer):
@@ -46,10 +50,11 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             self.group_name = self.get_group_name(self.room_id)  # 방 ID를 사용하여 그룹 이름 가져옴
             self.receiver_id = await self.get_receiver_id(self.room_id, self.user.id)
 
+            await self.add_user_to_room()  # 사용자를 채팅방 접속자 목록에 추가
             await self.channel_layer.group_add(self.group_name, self.channel_name)  # 현재 채널을 그룹에 추가
             await self.accept()  # WebSocket 연결 수락
-            # 채팅방 입장 시 안 읽은 메시지 수 초기화
-            await self.reset_unread_count(self.room_id, self.user.id)
+            await self.reset_unread_count(self.room_id, self.user.id)  # 채팅방 입장 시 안 읽은 메시지 수 초기화
+            await self.update_chat_list()
             logger.debug(f"WebSocket connection accepted for room_id: {self.room_id}")
 
         except Exception as e:
@@ -58,6 +63,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
     async def disconnect(self, close_code):
         try:
+            await self.remove_user_from_room()  # 사용자를 채팅방 접속자 목록에서 제거
             group_name = self.get_group_name(self.room_id)  # 방 ID를 사용하여 그룹 이름 가져옴
             await self.channel_layer.group_discard(group_name, self.channel_name)  # 현재 채널을 그룹에서 제거
             logger.debug(f"WebSocket disconnected with code: {close_code}")
@@ -79,10 +85,14 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             group_name = self.get_group_name(self.room_id)
 
             # 수신된 메시지를 데이터베이스에 저장
-            message_obj = await self.save_message(self.room_id, sender_nickname, message)
+            message_obj = await self.save_message_and_update_chatroom(self.room_id, sender_nickname, message)
 
-            # 메시지 수신자의 안 읽은 메시지 수 증가
-            await self.increment_unread_count(self.room_id, self.receiver_id)
+            # 수신자가 채팅방에 접속 중인지 확인
+            receiver_is_online = await self.is_user_in_room(self.receiver_id)
+
+            if not receiver_is_online:
+                # 수신자가 접속 중이 아닐 때만 안 읽은 메시지 수 증가
+                await self.increment_unread_count(self.room_id, self.receiver_id)
 
             # 메시지를 전체 그룹에 전송
             await self.channel_layer.group_send(
@@ -130,7 +140,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         return f"chat_room_{room_id}"
 
     @database_sync_to_async
-    def save_message(self, room_id, sender_nickname, message_text):
+    def save_message_and_update_chatroom(self, room_id, sender_nickname, message_text):
         # 발신자 닉네임과 메시지 텍스트가 제공되었는지 확인
         if not sender_nickname or not message_text:
             raise ValueError("발신자 닉네임 및 메시지 텍스트가 필요합니다.")
@@ -140,6 +150,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
         # 메시지를 생성하고 데이터베이스에 저장
         message = Message.objects.create(room=room, sender=sender, message=message_text)
+        room.update_latest_message(message)
 
         return message
 
@@ -164,6 +175,46 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
     @database_sync_to_async
     def reset_unread_count(self, room_id, user_id):
         ChatService.reset_unread_count(room_id, user_id)
+
+    @database_sync_to_async
+    def add_user_to_room(self):
+        try:
+            redis_client.sadd(f"chat_room_{self.room_id}_users", self.user.id)
+        except redis.RedisError as e:
+            logger.error(f"Redis error in add_user_to_room: {str(e)}")
+
+    @database_sync_to_async
+    def remove_user_from_room(self):
+        try:
+            redis_client.srem(f"chat_room_{self.room_id}_users", self.user.id)
+        except redis.RedisError as e:
+            logger.error(f"Redis error in remove_user_from_room: {str(e)}")
+
+    @database_sync_to_async
+    def is_user_in_room(self, user_id):
+        try:
+            return redis_client.sismember(f"chat_room_{self.room_id}_users", user_id)
+        except redis.RedisError as e:
+            logger.error(f"Redis error in is_user_in_room: {str(e)}")
+            return False  # Redis 오류 시 기본적으로 사용자가 방에 없다고 가정
+
+    async def update_chat_list(self):
+        try:
+            if self.chat_room.latest_message:
+                await self.channel_layer.group_send(
+                    "chat_list",
+                    {
+                        "type": "chat_list_update",
+                        "id": self.room_id,
+                        "latest_message": self.chat_room.latest_message.message,
+                        "sender_nickname": self.chat_room.latest_message.sender.nickname,
+                        "latest_message_time": self.chat_room.latest_message_time.isoformat(),
+                        "updated_user_id": self.user.id,
+                        "unread_count": 0,  # 방에 입장했으므로 0으로 설정
+                    },
+                )
+        except Exception as e:
+            logger.error(f"Error updating chat list: {str(e)}")
 
 
 class ChatListConsumer(AsyncJsonWebsocketConsumer):
