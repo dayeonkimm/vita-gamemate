@@ -1,4 +1,4 @@
-from django.db import models, transaction
+from django.db import models
 
 
 class GameRequestManager(models.Manager):
@@ -17,6 +17,24 @@ class GameRequestManager(models.Manager):
     def get_game_request_from_id(self, id):
         try:
             return self.get(id=id)
+        except self.model.DoesNotExist:
+            raise self.model.DoesNotExist
+
+    def get_game_request_game_review_count(self, mate_id, game_id, review_status=True):
+        try:
+            return self.filter(mate_id=mate_id, game_id=game_id, review_status=review_status).count()
+        except self.model.DoesNotExist:
+            raise self.model.DoesNotExist
+
+    def get_game_request_total_count(self, mate_id):
+        try:
+            return self.filter(mate_id=mate_id).count()
+        except self.model.DoesNotExist:
+            raise self.model.DoesNotExist
+
+    def get_game_request_count(self, mate_id, game_id):
+        try:
+            return self.filter(mate_id=mate_id, game_id=game_id).count()
         except self.model.DoesNotExist:
             raise self.model.DoesNotExist
 
