@@ -22,7 +22,7 @@ from .services import ChatService
 
 logger = logging.getLogger("channels")
 
-redis_client = redis.Redis.from_url(settings.REDIS_URL)
+redis_client = redis.Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT, password=settings.REDIS_PASSWORD, db=3)
 
 
 class ChatConsumer(AsyncJsonWebsocketConsumer):
@@ -44,7 +44,8 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         try:
             self.room_id = self.scope["url_route"]["kwargs"]["room_id"]  # URL 경로에서 방 ID를 추출
 
-            if not await self.check_room_exists(self.room_id):  # 방이 존재하는지 확인
+            self.chatroom = await self.check_room_exists(self.room_id)  # 방이 존재하는지 확인
+            if not self.chatroom:
                 raise ValueError("채팅방이 존재하지 않습니다.")
 
             self.group_name = self.get_group_name(self.room_id)  # 방 ID를 사용하여 그룹 이름 가져옴
@@ -157,7 +158,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
     @database_sync_to_async
     def check_room_exists(self, room_id):
         # 주어진 ID로 채팅방이 존재하는지 확인
-        return ChatRoom.objects.filter(id=room_id).exists()
+        return ChatRoom.objects.get(id=room_id)
 
     @sync_to_async
     def get_user_from_access_token(self, access_token):
@@ -200,17 +201,16 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
     async def update_chat_list(self):
         try:
-            if self.chat_room.latest_message:
+            if self.chatroom.latest_message:
                 await self.channel_layer.group_send(
                     "chat_list",
                     {
                         "type": "chat_list_update",
                         "id": self.room_id,
-                        "latest_message": self.chat_room.latest_message.message,
-                        "sender_nickname": self.chat_room.latest_message.sender.nickname,
-                        "latest_message_time": self.chat_room.latest_message_time.isoformat(),
+                        "latest_message": self.chatroom.latest_message.message,
+                        "sender_nickname": self.chatroom.latest_message.sender.nickname,
+                        "latest_message_time": self.chatroom.latest_message_time.isoformat(),
                         "updated_user_id": self.user.id,
-                        "unread_count": 0,  # 방에 입장했으므로 0으로 설정
                     },
                 )
         except Exception as e:
