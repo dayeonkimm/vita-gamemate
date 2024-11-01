@@ -44,7 +44,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         try:
             self.room_id = self.scope["url_route"]["kwargs"]["room_id"]  # URL 경로에서 방 ID를 추출
 
-            self.chatroom = await self.check_room_exists(self.room_id)  # 방이 존재하는지 확인
+            self.chatroom = await self.get_chat_room(self.room_id)  # 방이 존재하는지 확인
             if not self.chatroom:
                 raise ValueError("채팅방이 존재하지 않습니다.")
 
@@ -156,9 +156,8 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         return message
 
     @database_sync_to_async
-    def check_room_exists(self, room_id):
-        # 주어진 ID로 채팅방이 존재하는지 확인
-        return ChatRoom.objects.get(id=room_id)
+    def get_chat_room(self, room_id):
+        return ChatRoom.objects.select_related("latest_message__sender").get(id=room_id)
 
     @sync_to_async
     def get_user_from_access_token(self, access_token):
