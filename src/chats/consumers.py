@@ -210,6 +210,8 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                         "sender_nickname": self.chatroom.latest_message.sender.nickname,
                         "latest_message_time": self.chatroom.latest_message_time.isoformat(),
                         "updated_user_id": self.user.id,
+                        "unread_count": 0,
+                        "is_read_update": True,
                     },
                 )
         except Exception as e:
@@ -243,10 +245,11 @@ class ChatListConsumer(AsyncJsonWebsocketConsumer):
     async def chat_list_update(self, event):
         room_id = event["id"]
         updated_user_id = event.get("updated_user_id")
+        is_read_update = event.get("is_read_update", False)
 
         # 현재 사용자가 업데이트된 사용자인 경우에만 unread_count를 가져옴
         if self.user.id == updated_user_id:
-            unread_count = await self.get_unread_count(room_id, self.user.id)
+            unread_count = event.get("unread_count") if is_read_update else await self.get_unread_count(room_id, self.user.id)
         else:
             unread_count = None
 
@@ -258,6 +261,7 @@ class ChatListConsumer(AsyncJsonWebsocketConsumer):
                 "sender_nickname": event["sender_nickname"],
                 "latest_message_time": event["latest_message_time"],
                 "unread_count": unread_count,
+                "is_read_update": is_read_update,
             }
         )
 
