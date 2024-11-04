@@ -11,6 +11,7 @@ from users.exceptions import (
     TokenMissing,
     UserNotFound,
 )
+from users.models import User
 from users.services.user_service import UserService
 from wallets.models.wallets_model import Wallet
 from wallets.serializers.wallets_serializers import (
@@ -120,3 +121,27 @@ class WalletWithdrawView(APIView):
         wallet.refresh_from_db()
 
         return Response({"message": "코인이 성공적으로 차감되었습니다.", "coin": wallet.coin}, status=status.HTTP_200_OK)
+
+
+class WalletAdminRechargeView(APIView):
+    serializer_class = WalletRechargeSerializer
+
+    def post(self, request, user_id):
+        user = User.objects.get_user_by_id(user_id=user_id)
+
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        coin_amount = serializer.validated_data["coin"]
+
+        wallet = Wallet.objects.filter(user_id=user.id).first()
+        if not wallet:
+            return Response({"error": "지갑을 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
+
+        # F expression을 사용하여 동시성 문제 해결
+        wallet.coin = F("coin") + coin_amount
+        wallet.save()
+
+        # 다시 데이터베이스에서 값 가져오기
+        wallet.refresh_from_db()
+
+        return Response({"message": "코인이 성공적으로 충전되었습니다.", "coin": wallet.coin}, status=status.HTTP_200_OK)
