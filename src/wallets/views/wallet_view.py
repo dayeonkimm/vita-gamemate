@@ -114,6 +114,9 @@ class WalletWithdrawView(APIView):
         serializer.is_valid(raise_exception=True)
         coin_amount = serializer.validated_data["coin"]
 
+        if wallet.coin < coin_amount:
+            return Response({"error": "잔액이 부족합니다."}, status=status.HTTP_400_BAD_REQUEST)
+
         # F expression으로 잔액에서 차감
         wallet.coin = F("coin") - coin_amount
         wallet.save()
