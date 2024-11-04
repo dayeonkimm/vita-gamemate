@@ -34,7 +34,9 @@ class ReviewAPITestCase(TestCase):
             level="챌린저",
             request_price=1000,
         )
-        self.game_request = GameRequest.objects.create(user_id=self.user.id, mate_id=self.mate.id, game=self.game, price=500, amount=1)
+        self.game_request = GameRequest.objects.create(
+            user_id=self.user.id, mate_id=self.mate.id, game=self.game, price=500, amount=1, review_status=True
+        )
 
         # 리뷰 생성
         Review.objects.create(game_request=self.game_request, rating=5, content="리뷰 내용 1")
@@ -57,7 +59,7 @@ class ReviewAPITestCase(TestCase):
 
     def test_user_game_review_list(self):
         # 특정 사용자의 특정 게임에 대한 리뷰 목록 조회 테스트
-        url = reverse("review-game", kwargs={"user_id": self.user.id, "game_id": self.game.id})
+        url = reverse("review-game", kwargs={"user_id": self.mate.id, "game_id": self.game.id})
 
         # 쿼리 파라미터로 페이지 번호 전달
         response = self.client.get(f"{url}?page=1")
