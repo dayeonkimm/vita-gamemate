@@ -203,7 +203,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         try:
             if self.chatroom.latest_message:
                 await self.channel_layer.group_send(
-                    "chat_list",
+                    f"chat_list_{self.user.id}",
                     {
                         "type": "chat_list_update",
                         "id": self.room_id,
