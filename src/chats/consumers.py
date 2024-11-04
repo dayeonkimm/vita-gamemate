@@ -107,17 +107,18 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             )
 
             # 채팅 리스트 업데이트
-            await self.channel_layer.group_send(
-                "chat_list",
-                {
-                    "type": "chat_list_update",
-                    "id": self.room_id,
-                    "latest_message": message,
-                    "sender_nickname": sender_nickname,
-                    "latest_message_time": message_obj.created_at.isoformat(),
-                    "updated_user_id": self.receiver_id,
-                },
-            )
+            for user_id in [self.user.id, self.receiver_id]:
+                await self.channel_layer.group_send(
+                    f"chat_list_{user_id}",
+                    {
+                        "type": "chat_list_update",
+                        "id": self.room_id,
+                        "latest_message": message,
+                        "sender_nickname": sender_nickname,
+                        "latest_message_time": message_obj.created_at.isoformat(),
+                        "updated_user_id": user_id,
+                    },
+                )
 
         except Exception as e:
             logger.debug(f"Error in receive_json: {str(e)}", exc_info=True)
@@ -228,12 +229,14 @@ class ChatListConsumer(AsyncJsonWebsocketConsumer):
             if not self.user.is_authenticated:
                 await self.close()
 
+            else:
+                self.user_group = f"chat_list_{self.user.id}"
+                await self.channel_layer.group_add(self.user_group, self.channel_name)
+                await self.accept()
+                logger.debug(f"WebSocket connection accepted for chat list of user {self.user.id}")
+
         except (MissingAuthorizationHeader, InvalidAuthorizationHeader, TokenMissing, UserNotFound):
             await self.close()
-
-        await self.channel_layer.group_add("chat_list", self.channel_name)
-        await self.accept()
-        logger.debug("WebSocket connection accepted for chat list")
 
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard("chat_list", self.channel_name)
