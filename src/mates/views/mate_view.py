@@ -1,7 +1,16 @@
 from multiprocessing import Value
 
 from django.core.exceptions import ValidationError
-from django.db.models import Avg, Case, FloatField, OuterRef, Subquery, When, BooleanField, IntegerField
+from django.db.models import (
+    Avg,
+    BooleanField,
+    Case,
+    FloatField,
+    IntegerField,
+    OuterRef,
+    Subquery,
+    When,
+)
 from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
