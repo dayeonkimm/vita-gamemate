@@ -1,5 +1,16 @@
+from multiprocessing import Value
+
 from django.core.exceptions import ValidationError
-from django.db.models import Avg, Case, FloatField, OuterRef, Subquery, When
+from django.db.models import (
+    Avg,
+    BooleanField,
+    Case,
+    FloatField,
+    IntegerField,
+    OuterRef,
+    Subquery,
+    When,
+)
 from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -64,7 +75,8 @@ class MateGameInfoListView(generics.ListAPIView):
         sort = self.request.query_params.get("sort")
 
         if sort == "recommendation":
-            queryset = queryset.order_by("-mategameinfo__created_at")
+            # profile_image가 없는 유저 안 나타나게
+            queryset = queryset.exclude(profile_image="").filter(profile_image__isnull=False).order_by("-mategameinfo__created_at")
 
         elif sort == "new":
             queryset = queryset.order_by("-mategameinfo__created_at")
