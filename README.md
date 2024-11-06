@@ -58,7 +58,6 @@
 
 | 📒 [사용자 요구사항 정의서 ](https://docs.google.com/spreadsheets/d/18Sd4Y5-7SAsMSm9OckjFmxQo-1E4hltzeOGqEoTK2N4/edit?gid=0#gid=0) | 📕 [ERD](https://viewer.diagrams.net/?border=0&tags=%7B%7D&lightbox=1&highlight=0000ff&edit=_blank&layers=1&nav=1&title=%EC%98%A4%EC%A6%88%20%EB%A9%94%EC%9D%B8%20%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%20ERD.drawio#Uhttps%3A%2F%2Fdrive.google.com%2Fuc%3Fid%3D1shZhISi51VwdOpQsiogHH8WegTfMX-9-%26export%3Ddownload#%7B%22pageId%22%3A%22kNIgemzfoJHLOHQu6Lem%22%7D) | 📗 [테이블 명세서](https://docs.google.com/spreadsheets/d/10hguLQy3WQ0dqZKS9wK8MTPqYumgfXI8rc2nnQuwBuU/edit?gid=0#gid=0) | 📘 [API 명세서](https://docs.google.com/spreadsheets/d/1wMHJGL6n43tHzdM6P-lIWg-yVgOOh1B9VNZthQYka80/edit?gid=0#gid=0 
 ) | 📙 [발표자료](#) |
-| ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- | ---------------- |
 
 <br/>
 <br/>
@@ -66,11 +65,12 @@
 
 ## 🙌 팀원 소개
 
-| Leader       | Member       | Member       | Member       |
-| :---:        | :---:        | :---:        | :---:        |
-| BE 황태영    | BE 김다연    | BE 장유전    | BE 문유진    |
-| <a href="https://github.com/hwangtate"><img src="https://avatars.githubusercontent.com/u/139641065?v=4" alt="황태영" width="100px" height="100px"></a> | <a href="https://github.com/dayeonkimm"><img src="https://avatars.githubusercontent.com/u/164486991?v=4" alt="김다연" width="100px" height="100px"></a> | <a href="https://github.com/Rosaly-J"><img src="https://avatars.githubusercontent.com/u/173425107?v=4" alt="장윤정" width="100px" height="100px"></a> | <a
-href="https://github.com/moonyu012"><img src="https://avatars.githubusercontent.com/u/173425482?v=4" alt="문유진" width="100px" height="100px"></a>
+| Role   | Name       | GitHub Profile |
+| :---:  | :---:      | :---:          |
+| Leader | 황태영 (BE) | <a href="https://github.com/hwangtate"><img src="https://avatars.githubusercontent.com/u/139641065?v=4" alt="황태영" width="100px" height="100px"></a> |
+| Member | 김다연 (BE) | <a href="https://github.com/dayeonkimm"><img src="https://avatars.githubusercontent.com/u/164486991?v=4" alt="김다연" width="100px" height="100px"></a> |
+| Member | 장윤정 (BE) | <a href="https://github.com/Rosaly-J"><img src="https://avatars.githubusercontent.com/u/173425107?v=4" alt="장윤정" width="100px" height="100px"></a> |
+| Member | 문유진 (BE) | <a href="https://github.com/moonyu012"><img src="https://avatars.githubusercontent.com/u/173425482?v=4" alt="문유진" width="100px" height="100px"></a> |
 
 
 
