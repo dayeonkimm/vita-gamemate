@@ -148,6 +148,8 @@ CSRF_TRUSTED_ORIGINS = [
     "http://43.202.32.218/",
     "http://resdineconsulting.com",
     "https://resdineconsulting.com",
+    "http://vita.resdineconsulting.com",
+    "https://vita.resdineconsulting.com",
 ]
 
 REST_FRAMEWORK = {

@@ -66,7 +66,7 @@ class GameRequestReviewListAPIView(APIView):
     pagination_class = ReviewPagination
 
     def get(self, request, game_request_id):
-        reviews = Review.objects.filter(game_request_id=game_request_id).order_by("-created_at")
+        reviews = Review.objects.filter(game_request_id=game_request_id, game_request__review_status=True).order_by("-created_at")
 
         paginator = self.pagination_class()
         paginated_reviews = paginator.paginate_queryset(reviews, request)
@@ -81,7 +81,9 @@ class UserGameReviewListAPIView(APIView):
     pagination_class = UserGameReviewPagination
 
     def get(self, request, user_id, game_id):
-        reviews = Review.objects.filter(game_request__user_id=user_id, game_request__game_id=game_id).order_by("-created_at")
+        reviews = Review.objects.filter(
+            game_request__mate_id=user_id, game_request__game_id=game_id, game_request__review_status=True
+        ).order_by("-created_at")
 
         paginator = self.pagination_class()
         paginated_reviews = paginator.paginate_queryset(reviews, request)
@@ -96,7 +98,7 @@ class UserReviewListAPIView(APIView):
 
     def get(self, request, user_id):
 
-        reviews = Review.objects.filter(game_request__user_id=user_id).order_by("-created_at")
+        reviews = Review.objects.filter(game_request__mate_id=user_id, game_request__review_status=True).order_by("-created_at")
 
         paginator = self.pagination_class()
         paginated_reviews = paginator.paginate_queryset(reviews, request)

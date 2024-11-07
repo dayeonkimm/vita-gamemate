@@ -1,10 +1,22 @@
+from multiprocessing import Value
+
 from django.core.exceptions import ValidationError
-from django.db.models import Avg
+from django.db.models import (
+    Avg,
+    BooleanField,
+    Case,
+    FloatField,
+    IntegerField,
+    OuterRef,
+    Subquery,
+    When,
+)
 from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from game_requests.models import GameRequest
 from mates.exceptions import InvalidLevelError
 from mates.models import MateGameInfo
 from mates.serializers.mate_serializer import RegisterMateSerializer
@@ -60,17 +72,38 @@ class MateGameInfoListView(generics.ListAPIView):
             level_list = level.split(",")
             queryset = queryset.filter(mategameinfo__level__in=level_list)
 
-        # 정렬 처리
         sort = self.request.query_params.get("sort")
 
         if sort == "recommendation":
-            queryset = queryset.order_by("-mategameinfo__created_at")  # 추천순 (필드 및 수정 필요)
+            # profile_image가 없는 유저 안 나타나게
+            queryset = queryset.exclude(profile_image="").filter(profile_image__isnull=False).order_by("-mategameinfo__created_at")
 
         elif sort == "new":
             queryset = queryset.order_by("-mategameinfo__created_at")
 
         elif sort == "rating_desc":
-            queryset = queryset.order_by("-mategameinfo__created_at")  # 수정 필요
+            # 서브쿼리를 통해 평균 평점 계산
+            avg_rating_subquery = (
+                GameRequest.objects.filter(mate=OuterRef("pk"), review__isnull=False)
+                .values("mate")
+                .annotate(avg_rating=Avg("review__rating"))
+                .values("avg_rating")
+            )
+
+            # 평균 평점에 따른 정렬 처리
+            queryset = (
+                queryset.annotate(
+                    avg_rating=Subquery(avg_rating_subquery[:1]),
+                )
+                .annotate(
+                    avg_rating=Case(
+                        When(avg_rating__isnull=True, then=0),  # 평균 평점이 없으면 0으로 설정
+                        default="avg_rating",
+                        output_field=FloatField(),
+                    )
+                )
+                .order_by("-avg_rating")
+            )
 
         elif sort == "price_asc":
             queryset = queryset.order_by("mategameinfo__request_price")
