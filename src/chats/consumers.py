@@ -84,9 +84,6 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             if not all([message, sender_nickname]):
                 raise ValueError("필수 정보가 누락되었습니다.")
 
-            # # 수신된 메시지를 데이터베이스에 저장
-            # message_obj = await self.save_message_and_update_chatroom(self.room_id, sender_nickname, message)
-
             message_data = await self.save_message_to_redis(self.room_id, self.user.id, message)
 
             # 수신자가 채팅방에 접속 중인지 확인
@@ -339,8 +336,5 @@ async def start_periodic_sync():
         await asyncio.sleep(30)
         await ChatConsumer.sync_messages_to_db()
 
-
-# # 서버 시작 시 주기적 동기화 작업 시작
-# asyncio.create_task(start_periodic_sync())
 
 atexit.register(ChatConsumer.sync_remaining_messages)
