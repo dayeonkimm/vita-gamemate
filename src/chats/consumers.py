@@ -1,9 +1,14 @@
+import asyncio
+import atexit
+import json
 import logging
 
+import pytz
 import redis
 from asgiref.sync import sync_to_async
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
+from dateutil import parser
 from django.conf import settings
 from django.utils import timezone
 
@@ -13,7 +18,6 @@ from users.exceptions import (
     TokenMissing,
     UserNotFound,
 )
-from users.managers import UserManager
 from users.models.user_model import User
 from users.services.user_service import UserService
 
@@ -43,7 +47,6 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         logger.debug(f"WebSocket connection attempt for room_id: {self.scope['url_route']['kwargs'].get('room_id')}")
         try:
             self.room_id = self.scope["url_route"]["kwargs"]["room_id"]  # URL 경로에서 방 ID를 추출
-
             self.chatroom = await self.get_chat_room(self.room_id)  # 방이 존재하는지 확인
             if not self.chatroom:
                 raise ValueError("채팅방이 존재하지 않습니다.")
@@ -65,8 +68,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
     async def disconnect(self, close_code):
         try:
             await self.remove_user_from_room()  # 사용자를 채팅방 접속자 목록에서 제거
-            group_name = self.get_group_name(self.room_id)  # 방 ID를 사용하여 그룹 이름 가져옴
-            await self.channel_layer.group_discard(group_name, self.channel_name)  # 현재 채널을 그룹에서 제거
+            await self.channel_layer.group_discard(self.group_name, self.channel_name)  # 현재 채널을 그룹에서 제거
             logger.debug(f"WebSocket disconnected with code: {close_code}")
 
         except Exception as e:
@@ -82,11 +84,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             if not all([message, sender_nickname]):
                 raise ValueError("필수 정보가 누락되었습니다.")
 
-            # 그룹 이름을 가져오기
-            group_name = self.get_group_name(self.room_id)
-
-            # 수신된 메시지를 데이터베이스에 저장
-            message_obj = await self.save_message_and_update_chatroom(self.room_id, sender_nickname, message)
+            message_data = await self.save_message_to_redis(self.room_id, self.user.id, message)
 
             # 수신자가 채팅방에 접속 중인지 확인
             receiver_is_online = await self.is_user_in_room(self.receiver_id)
@@ -97,12 +95,12 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
             # 메시지를 전체 그룹에 전송
             await self.channel_layer.group_send(
-                group_name,
+                self.group_name,
                 {
                     "type": "chat_message",
                     "message": message,
                     "sender_nickname": sender_nickname,
-                    "timestamp": message_obj.created_at.isoformat(),
+                    "timestamp": message_data["created_at"],
                 },
             )
 
@@ -115,7 +113,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                         "id": self.room_id,
                         "latest_message": message,
                         "sender_nickname": sender_nickname,
-                        "latest_message_time": message_obj.created_at.isoformat(),
+                        "latest_message_time": message_data["created_at"],
                         "updated_user_id": user_id,
                     },
                 )
@@ -142,19 +140,44 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         return f"chat_room_{room_id}"
 
     @database_sync_to_async
-    def save_message_and_update_chatroom(self, room_id, sender_nickname, message_text):
-        # 발신자 닉네임과 메시지 텍스트가 제공되었는지 확인
-        if not sender_nickname or not message_text:
-            raise ValueError("발신자 닉네임 및 메시지 텍스트가 필요합니다.")
+    def save_message_to_redis(self, room_id, sender_id, message_text):
+        redis_key = f"chat_room_{room_id}_messages"
+        created_at = timezone.now()
+        message_data = {"room_id": room_id, "sender_id": sender_id, "message": message_text, "created_at": created_at.isoformat()}
+        score = created_at.timestamp()
+        redis_client.zadd(redis_key, {json.dumps(message_data): score})
+        return message_data
 
-        room = ChatRoom.objects.get(id=room_id)
-        sender = User.objects.get(nickname=sender_nickname)
+    @classmethod
+    async def sync_messages_to_db(cls):
+        try:
+            for key in redis_client.keys("chat_room_*_messages"):
+                room_id = key.decode().split("_")[2]
+                last_sync_score = float(redis_client.get(f"last_sync_score_{room_id}") or 0)
+                messages = redis_client.zrangebyscore(key, f"({last_sync_score}", "+inf", withscores=True)
+                messages_to_create = []
+                last_processed_score = last_sync_score
+                for message_json, score in messages:
+                    message_data = json.loads(message_json)
+                    messages_to_create.append(
+                        Message(
+                            room_id=room_id,
+                            sender_id=message_data["sender_id"],
+                            message=message_data["message"],
+                            created_at=timezone.datetime.fromtimestamp(score, tz=pytz.UTC),
+                        )
+                    )
+                    last_processed_score = score
 
-        # 메시지를 생성하고 데이터베이스에 저장
-        message = Message.objects.create(room=room, sender=sender, message=message_text)
-        room.update_latest_message(message)
+                if messages_to_create:
+                    await database_sync_to_async(Message.objects.bulk_create)(messages_to_create)
+                    redis_client.set(f"last_sync_score_{room_id}", str(last_processed_score))
 
-        return message
+                # 동기화된 메시지만 삭제
+                redis_client.zremrangebyscore(key, "-inf", f"({last_processed_score}")
+            logger.info("All messages synced from Redis to database.")
+        except Exception as e:
+            logger.error(f"Error syncing messages: {str(e)}")
 
     @database_sync_to_async
     def get_chat_room(self, room_id):
@@ -218,6 +241,37 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         except Exception as e:
             logger.error(f"Error updating chat list: {str(e)}")
 
+    @classmethod
+    def sync_remaining_messages(cls):
+        try:
+            for key in redis_client.keys("chat_room_*_messages"):
+                room_id = key.decode().split("_")[2]
+                last_sync_score = float(redis_client.get(f"last_sync_score_{room_id}") or 0)
+                messages = redis_client.zrangebyscore(key, f"({last_sync_score}", "+inf", withscores=True)
+                messages_to_create = []
+                last_processed_score = last_sync_score
+                for message_json, score in messages:
+                    message_data = json.loads(message_json)
+                    messages_to_create.append(
+                        Message(
+                            room_id=room_id,
+                            sender_id=message_data["sender_id"],
+                            message=message_data["message"],
+                            created_at=timezone.datetime.fromtimestamp(score, tz=pytz.UTC),
+                        )
+                    )
+                    last_processed_score = score
+
+                if messages_to_create:
+                    Message.objects.bulk_create(messages_to_create)
+                    redis_client.set(f"last_sync_score_{room_id}", str(last_processed_score))
+
+                # 동기화된 메시지만 삭제
+                redis_client.zremrangebyscore(key, "-inf", f"({last_processed_score}")
+            logger.info("All remaining messages synced from Redis to database.")
+        except Exception as e:
+            logger.error(f"Error syncing remaining messages: {str(e)}")
+
 
 class ChatListConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self):
@@ -239,7 +293,7 @@ class ChatListConsumer(AsyncJsonWebsocketConsumer):
             await self.close()
 
     async def disconnect(self, close_code):
-        await self.channel_layer.group_discard("chat_list", self.channel_name)
+        await self.channel_layer.group_discard(self.user_group, self.channel_name)
         logger.debug(f"WebSocket disconnected from chat list with code: {close_code}")
 
     async def receive_json(self, content):
@@ -275,3 +329,12 @@ class ChatListConsumer(AsyncJsonWebsocketConsumer):
     @sync_to_async
     def get_user_from_access_token(self, access_token):
         return UserService.get_user_from_access_token(access_token)
+
+
+async def start_periodic_sync():
+    while True:
+        await asyncio.sleep(30)
+        await ChatConsumer.sync_messages_to_db()
+
+
+atexit.register(ChatConsumer.sync_remaining_messages)
