@@ -27,6 +27,8 @@ psycopg2-binary = "^2.9"  # PostgreSQL을 사용하기 위한 패키지
 boto3 = "^1.35.44"
 django-storages = {extras = ["s3"], version = "^1.14.4"}
 pillow = "^11.0.0"
+python-dateutil = "^2.9.0.post0"
+pytz = "^2024.2"
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.8.0"
