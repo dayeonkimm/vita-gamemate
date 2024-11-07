@@ -281,11 +281,11 @@ LOGGING = {
             "level": "DEBUG",
             "propagate": False,
         },
-        "django.db.backends": {  # 쿼리 콘솔에 출력
-            "handlers": ["console"],
-            "level": "DEBUG",
-            "propagate": False,
-        },
+        # "django.db.backends": {  # 쿼리 콘솔에 출력
+        #     "handlers": ["console"],
+        #     "level": "DEBUG",
+        #     "propagate": False,
+        # },
     },
 }
 
