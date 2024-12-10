@@ -57,11 +57,10 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./resources/nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+      - nginx.conf:/etc/nginx/conf.d/default.conf
       - static_volume:/app/static
       - media_volume:/app/media
-      - ./resources/cert/fullchain.pem:/etc/letsencrypt/live/resdineconsulting.com/fullchain.pem
-      - ./resources/cert/privkey.pem:/etc/letsencrypt/live/resdineconsulting.com/privkey.pem
+      - /etc/letsencrypt:/etc/letsencrypt:ro
       - daphne_socket:/app/daphne_socket
     networks:
       - app_network

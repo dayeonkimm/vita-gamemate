@@ -61,9 +61,9 @@ COPY . /app
 
 # 8. ENTRYPOINT 설정
 COPY scripts/entrypoint.sh /app/entrypoint.sh
-COPY resources/nginx/nginx.conf /etc/nginx/conf.d/default.conf
-COPY resources/cert/fullchain.pem /etc/letsencrypt/live/resdineconsulting.com/fullchain.pem
-COPY resources/cert/privkey.pem /etc/letsencrypt/live/resdineconsulting.com/privkey.pem
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+# COPY resources/cert/fullchain.pem /etc/letsencrypt/live/resdineconsulting.com/fullchain.pem
+# COPY resources/cert/privkey.pem /etc/letsencrypt/live/resdineconsulting.com/privkey.pem
 
 RUN chmod +x /app/entrypoint.sh
 # CMD ["/bin/bash", "/app/scripts/entrypoint.sh"] # docker-compose.yml에서 command로 지정
