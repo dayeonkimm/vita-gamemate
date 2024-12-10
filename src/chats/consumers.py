@@ -69,10 +69,11 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         try:
             await self.remove_user_from_room()  # 사용자를 채팅방 접속자 목록에서 제거
             await self.channel_layer.group_discard(self.group_name, self.channel_name)  # 현재 채널을 그룹에서 제거
+            await self.sync_messages_to_db(self.room_id)   # Redis의 메시지를 데이터베이스에 동기화
             logger.debug(f"WebSocket disconnected with code: {close_code}")
 
         except Exception as e:
-            pass
+            logger.error(f"Error during disconnect: {str(e)}", exc_info=True)
 
     async def receive_json(self, content):
         logger.debug(f"Received content: {content}")
@@ -149,10 +150,16 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         return message_data
 
     @classmethod
-    async def sync_messages_to_db(cls):
+    async def sync_messages_to_db(cls, specific_room_id=None):
         try:
-            for key in redis_client.keys("chat_room_*_messages"):
-                room_id = key.decode().split("_")[2]
+            if specific_room_id:
+                keys = [f"chat_room_{specific_room_id}_messages"]
+            else:
+                active_rooms = redis_client.smembers("active_chat_rooms")
+                keys = [f"chat_room_{room_id.decode()}_messages" for room_id in active_rooms]
+                
+            for key in keys:
+                room_id = key.split("_")[2]
                 last_sync_score = float(redis_client.get(f"last_sync_score_{room_id}") or 0)
                 messages = redis_client.zrangebyscore(key, f"({last_sync_score}", "+inf", withscores=True)
                 messages_to_create = []
@@ -204,6 +211,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
     def add_user_to_room(self):
         try:
             redis_client.sadd(f"chat_room_{self.room_id}_users", self.user.id)
+            redis_client.sadd("active_chat_rooms", self.room_id)
         except redis.RedisError as e:
             logger.error(f"Redis error in add_user_to_room: {str(e)}")
 
@@ -211,6 +219,9 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
     def remove_user_from_room(self):
         try:
             redis_client.srem(f"chat_room_{self.room_id}_users", self.user.id)
+            # 해당 채팅방에 남은 사용자가 없으면 활성 채팅방에서 제거
+            if redis_client.scard(f"chat_room_{self.room_id}_users") == 0:
+                redis_client.srem("active_chat_rooms", self.room_id)
         except redis.RedisError as e:
             logger.error(f"Redis error in remove_user_from_room: {str(e)}")
 
