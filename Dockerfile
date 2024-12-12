@@ -49,9 +49,6 @@ COPY scripts/entrypoint.sh /app/entrypoint.sh
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 RUN chmod +x /app/entrypoint.sh
-CMD ["/bin/bash", "/app/scripts/entrypoint.sh"] # docker-compose.yml에서 command로 지정
-
-#RUN chmod +x /app/scripts/certbot.sh
 
 # 7. Gunicorn이 8000 포트에서 수신하도록 EXPOSE
 EXPOSE 8000

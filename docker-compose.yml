@@ -4,6 +4,7 @@ services:
   gunicorn:
     container_name: vita_gunicorn
     build: .
+    entrypoint: /app/entrypoint.sh
     expose:
       - "8000"
     ports:
@@ -16,7 +17,7 @@ services:
       - DB_NAME=${RDS_DB_NAME}
       - DB_USER=${RDS_USERNAME}
       - DB_PASSWORD=${RDS_PASSWORD}
-      - SKIP_MIGRATIONS=True
+      # - SKIP_MIGRATIONS=True
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD}
@@ -29,7 +30,6 @@ services:
   daphne:
     container_name: vita_daphne
     build: .
-    entrypoint: /app/entrypoint.sh
     volumes:
       - static_volume:/app/static
       - media_volume:/app/media
@@ -42,9 +42,10 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - PYTHONPATH=/app/src
     env_file:
       - .env
-    command: poetry run daphne -u /app/daphne_socket/daphne.sock config.asgi:application
+    command: poetry run daphne -u /app/daphne_socket/daphne.sock src.config.asgi:application
     networks:
       - app_network
     depends_on:
