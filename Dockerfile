@@ -37,8 +37,7 @@ ENV PATH="/root/.local/bin:$PATH"
 # 4. 프로젝트 파일 복사 및 의존성 설치
 WORKDIR /app
 
-COPY pyproject.toml /app/pyproject.toml
-COPY poetry.lock /app/poetry.lock
+COPY pyproject.toml poetry.lock ./
 RUN poetry config virtualenvs.create false \
     && poetry install --no-interaction --no-ansi
 
@@ -48,8 +47,6 @@ COPY . /app
 # 6. ENTRYPOINT 설정
 COPY scripts/entrypoint.sh /app/entrypoint.sh
 COPY nginx.conf /etc/nginx/conf.d/default.conf
-# COPY resources/cert/fullchain.pem /etc/letsencrypt/live/resdineconsulting.com/fullchain.pem
-# COPY resources/cert/privkey.pem /etc/letsencrypt/live/resdineconsulting.com/privkey.pem
 
 RUN chmod +x /app/entrypoint.sh
 CMD ["/bin/bash", "/app/scripts/entrypoint.sh"] # docker-compose.yml에서 command로 지정

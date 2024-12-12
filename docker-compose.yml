@@ -22,7 +22,7 @@ services:
       - REDIS_PASSWORD=${REDIS_PASSWORD}
     env_file:
       - .env
-    command: /bin/bash -c "source ~/.bashrc && cd /app/src && poetry run gunicorn config.wsgi:application --bind 0.0.0.0:8000"
+    command: poetry run gunicorn config.wsgi:application --bind 0.0.0.0:8000
     networks:
       - app_network
 
@@ -44,7 +44,7 @@ services:
       - REDIS_PASSWORD=${REDIS_PASSWORD}
     env_file:
       - .env
-    command: /bin/bash -c "source ~/.bashrc && cd /app/src && poetry run daphne -u /app/daphne_socket/daphne.sock config.asgi:application"
+    command: poetry run daphne -u /app/daphne_socket/daphne.sock config.asgi:application
     networks:
       - app_network
     depends_on:
