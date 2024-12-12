@@ -1,10 +1,6 @@
 #!/bin/bash
 #DJANGO_APP = "djangoProject"
 
-# 가상 환경 활성화
-source ~/.bashrc
-pyenv activate django_app
-
 # 작업 디렉토리 이동
 cd /app/src
 
