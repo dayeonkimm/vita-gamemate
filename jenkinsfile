@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         DOCKER_HUB_CREDENTIALS = credentials('docker-hub-credentials') 
-        EC2_SERVER = 'ec2-user@43.201.37.247' 
+        EC2_SERVER = 'ec2-user@54.180.235.50' 
     }
 
     stages {
