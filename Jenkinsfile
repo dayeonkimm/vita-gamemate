@@ -18,15 +18,19 @@ pipeline {
         stage('Checkout') {
             steps {
                 checkout([$class: 'GitSCM', 
+                          branches: [[name: '*/develop']],  // 브랜치만 지정
                           extensions: [[$class: 'CloneOption', noTags: false, shallow: false, depth: 0]], 
-                          userRemoteConfigs: [[url: 'https://github.com/dayeonkimm/vita-gamemate.git']]])
+                          userRemoteConfigs: [[
+                              url: 'https://github.com/dayeonkimm/vita-gamemate.git',
+                              refspec: '+refs/tags/*:refs/tags/* +refs/heads/*:refs/remotes/origin/*'  // 태그와 브랜치 모두 처리
+                          ]]
+                ])
             }
         }
 
         stage('Set Git Tag') {
             steps {
                 script {
-                    sh 'git fetch --tags' // 태그 정보 가져오기
                     env.GIT_TAG_NAME = sh(returnStdout: true, script: 'git describe --tags --abbrev=0').trim()
                     echo "Detected Git Tag: ${env.GIT_TAG_NAME}"
                 }
