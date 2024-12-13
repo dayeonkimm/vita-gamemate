@@ -10,6 +10,10 @@ pipeline {
         EC2_SERVER = 'ec2-user@54.180.235.50' 
     }
 
+    triggers {
+        githubPush()  
+    }
+
     stages {
         stage('Checkout') {
             steps {
