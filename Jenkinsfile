@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     options {
-        disableConcurrentBuilds() // 동시 실행 제한
+        disableConcurrentBuilds()  // 동시 실행 제한
     }
 
     environment {
@@ -11,19 +11,17 @@ pipeline {
     }
 
     triggers {
-        githubPush()  
+        githubPush()  // GitHub 웹훅 트리거 추가
     }
 
     stages {
         stage('Checkout') {
             steps {
                 checkout([$class: 'GitSCM', 
-                          branches: [[name: '*/develop']],  // 브랜치만 지정
-                          extensions: [[$class: 'CloneOption', noTags: false, shallow: false, depth: 0]], 
-                          userRemoteConfigs: [[
-                              url: 'https://github.com/dayeonkimm/vita-gamemate.git',
-                              refspec: '+refs/tags/*:refs/tags/* +refs/heads/*:refs/remotes/origin/*'  // 태그와 브랜치 모두 처리
-                          ]]
+                    branches: [[name: '*']],  // 모든 브랜치와 태그 체크아웃
+                    extensions: [[$class: 'CloneOption', noTags: false, shallow: false, depth: 0]], 
+                    userRemoteConfigs: [[url: 'https://github.com/dayeonkimm/vita-gamemate.git']],
+                    refspec: '+refs/tags/*:refs/remotes/origin/tags/*'  // 태그 명시적 가져오기
                 ])
             }
         }
@@ -31,7 +29,8 @@ pipeline {
         stage('Set Git Tag') {
             steps {
                 script {
-                    env.GIT_TAG_NAME = sh(returnStdout: true, script: 'git describe --tags --abbrev=0').trim()
+                    sh 'git fetch --tags'
+                    env.GIT_TAG_NAME = sh(returnStdout: true, script: 'git tag -l "release-*" --sort=-v:refname | head -n 1').trim()
                     echo "Detected Git Tag: ${env.GIT_TAG_NAME}"
                 }
             }
@@ -39,12 +38,14 @@ pipeline {
 
         stage('Build and Push Docker Images') {
             when {
-                tag pattern: "release-*", comparator: "GLOB" 
+                allOf {
+                    tag pattern: "release-*", comparator: "GLOB"
+                    expression { env.GIT_TAG_NAME != null }
+                }
             }
             steps {
                 script {
                     docker.withRegistry('https://index.docker.io/v1/', 'docker-hub-credentials') {
-                        echo "Building Docker image with tag: ${env.GIT_TAG_NAME}"
                         def djangoImage = docker.build("dayeonkimm/vita-gamemate:${env.GIT_TAG_NAME}", "-f Dockerfile .")
                         djangoImage.push()
                     }
@@ -54,18 +55,21 @@ pipeline {
 
         stage('Deploy to EC2') {
             when {
-                tag pattern: "release-*", comparator: "GLOB" 
+                allOf {
+                    tag pattern: "release-*", comparator: "GLOB"
+                    expression { env.GIT_TAG_NAME != null }
+                }
             }
             steps {
                 sshagent(credentials: ['ec2-ssh-key']) { 
                     sh """
-                        ssh ${EC2_SERVER} "
+                        ssh ${EC2_SERVER} '
                         cd /home/ec2-user/vita-gamemate
                         git fetch --tags
                         git checkout ${env.GIT_TAG_NAME}
                         docker-compose pull
                         docker-compose up -d --build
-                        "
+                        '
                     """
                 }
             }
@@ -74,7 +78,7 @@ pipeline {
 
     post {
         always {
-            cleanWs() // 워크스페이스 정리
+            cleanWs()
         }
     }
 }
