@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    options {
+        disableConcurrentBuilds()  //동시 실행 제한
+    }
+
     environment {
         DOCKER_HUB_CREDENTIALS = credentials('docker-hub-credentials') 
         EC2_SERVER = 'ec2-user@54.180.235.50' 
@@ -47,7 +51,7 @@ pipeline {
                 sshagent(credentials: ['ec2-ssh-key']) { 
                     sh """
                         ssh ${EC2_SERVER} '
-                        cd /ec2-user/vita-gamemate
+                        cd /home/ec2-user/vita-gamemate
                         git fetch --tags
                         git checkout ${env.GIT_TAG_NAME}
                         docker-compose pull
