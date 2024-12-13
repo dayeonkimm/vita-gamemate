@@ -14,7 +14,8 @@ SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-@67tlej#l=ql#!-o0m&9+x%k+n
 DEBUG = True
 
 # ALLOWED_HOSTS = [
-#     "resdineconsulting.com",
+#     "vita.diannn.xyz",
+#     "api.vita.diannn.xyz",
 #     "localhost",
 #     "localhost:5173",
 #     "127.0.0.1:5173",
@@ -144,12 +145,12 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost",  # HTTP로도 접근하는 경우
     "https://127.0.0.1",  # 127.0.0.1 추가
     "http://127.0.0.1",  # HTTP 127.0.0.1 추가
-    "https://43.202.32.218/",
-    "http://43.202.32.218/",
-    "http://resdineconsulting.com",
-    "https://resdineconsulting.com",
-    "http://vita.resdineconsulting.com",
-    "https://vita.resdineconsulting.com",
+    "https://54.180.235.50/",
+    "http://54.180.235.50/",
+    "http://vita.diannn.xyz",
+    "https://vita.diannn.xyz",
+    "http://api.vita.diannn.xyz",
+    "https://api.vita.diannn.xyz",
 ]
 
 REST_FRAMEWORK = {
