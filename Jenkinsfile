@@ -1,27 +1,31 @@
 pipeline {
     agent any
-
+    
     options {
         disableConcurrentBuilds()  // 동시 실행 제한
+        timeout(time: 1, unit: 'HOURS')  // 빌드 타임아웃 설정
     }
 
     environment {
         DOCKER_HUB_CREDENTIALS = credentials('docker-hub-credentials') 
-        EC2_SERVER = 'ec2-user@54.180.235.50' 
-    }
-
-    triggers {
-        githubPush()  // GitHub 웹훅 트리거 추가
+        EC2_SERVER = 'ec2-user@54.180.235.50'
     }
 
     stages {
         stage('Checkout') {
             steps {
-                checkout([$class: 'GitSCM', 
-                    branches: [[name: '*']],  // 모든 브랜치와 태그 체크아웃
-                    extensions: [[$class: 'CloneOption', noTags: false, shallow: false, depth: 0]], 
-                    userRemoteConfigs: [[url: 'https://github.com/dayeonkimm/vita-gamemate.git']],
-                    refspec: '+refs/tags/*:refs/remotes/origin/tags/*'  // 태그 명시적 가져오기
+                checkout([$class: 'GitSCM',
+                    branches: [[name: 'refs/tags/*']],  // 태그만 체크아웃
+                    extensions: [[$class: 'CloneOption', 
+                        noTags: false, 
+                        shallow: false, 
+                        depth: 1,  // 최신 커밋만 가져오기
+                        honorRefspec: true
+                    ]],
+                    userRemoteConfigs: [[
+                        url: 'https://github.com/dayeonkimm/vita-gamemate.git',
+                        refspec: '+refs/tags/*:refs/remotes/origin/tags/*'
+                    ]]
                 ])
             }
         }
@@ -78,7 +82,13 @@ pipeline {
 
     post {
         always {
-            cleanWs()
+            cleanWs()  // 작업 공간 정리
+        }
+        failure {
+            echo 'Pipeline failed'
+        }
+        success {
+            echo 'Pipeline succeeded'
         }
     }
 }
