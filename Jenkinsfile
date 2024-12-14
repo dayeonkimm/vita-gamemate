@@ -9,13 +9,14 @@ pipeline {
     environment {
         DOCKER_HUB_CREDENTIALS = credentials('docker-hub-credentials') 
         EC2_SERVER = 'ec2-user@54.180.235.50'
+        GIT_TAG = sh(returnStdout: true, script: 'git describe --tags --abbrev=0').trim()
     }
 
     stages {
         stage('Checkout') {
             steps {
                 checkout([$class: 'GitSCM',
-                    branches: [[name: 'refs/tags/*']],  // 태그만 체크아웃
+                    branches: [[name: '*']],
                     extensions: [[$class: 'CloneOption', 
                         noTags: false, 
                         shallow: false, 
@@ -30,21 +31,10 @@ pipeline {
             }
         }
 
-        stage('Set Git Tag') {
-            steps {
-                script {
-                    sh 'git fetch --tags'
-                    env.GIT_TAG_NAME = sh(returnStdout: true, script: 'git tag -l "release-*" --sort=-v:refname | head -n 1').trim()
-                    echo "Detected Git Tag: ${env.GIT_TAG_NAME}"
-                }
-            }
-        }
-
         stage('Build and Push Docker Images') {
             when {
-                allOf {
-                    tag pattern: "release-*", comparator: "GLOB"
-                    expression { env.GIT_TAG_NAME != null }
+                expression { 
+                    return env.GIT_TAG =~ /^release-.*/ 
                 }
             }
             steps {
@@ -59,9 +49,8 @@ pipeline {
 
         stage('Deploy to EC2') {
             when {
-                allOf {
-                    tag pattern: "release-*", comparator: "GLOB"
-                    expression { env.GIT_TAG_NAME != null }
+                expression { 
+                    return env.GIT_TAG =~ /^release-.*/ 
                 }
             }
             steps {
