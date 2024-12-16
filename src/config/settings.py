@@ -202,7 +202,7 @@ DATABASES = {
         "NAME": os.environ.get("RDS_DB_NAME"),
         "USER": os.environ.get("RDS_USERNAME"),
         "PASSWORD": os.environ.get("RDS_PASSWORD"),
-        "PORT": os.environ.get("RDS_PORT", 5432),
+        "PORT": os.environ.get("RDS_DB_PORT", 5432),
         "OPTIONS": {
             "client_encoding": "UTF8",  # UTF-8 문자셋 설정
         },

@@ -10,7 +10,7 @@ if [ "$SKIP_MIGRATIONS" != "True" ]; then
 fi
 
 # 정적 파일 수집
-poetry run python manage.py collectstatic --no-input
+# poetry run python manage.py collectstatic --no-input
 
 # 명령행 인자로 전달된 명령 실행
 exec "$@"
