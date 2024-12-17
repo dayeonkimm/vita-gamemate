@@ -177,7 +177,11 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                     last_processed_score = score
 
                 if messages_to_create:
-                    await database_sync_to_async(Message.objects.bulk_create)(messages_to_create)
+                    created_messages = await database_sync_to_async(Message.objects.bulk_create)(messages_to_create)
+                    # 마지막 메시지로 latest_message 업데이트
+                    latest_message = created_messages[-1]
+                    room = await database_sync_to_async(ChatRoom.objects.get)(id=room_id)
+                    await database_sync_to_async(room.update_latest_message)(latest_message)
                     redis_client.set(f"last_sync_score_{room_id}", str(last_processed_score))
 
                 # 동기화된 메시지만 삭제
