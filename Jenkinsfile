@@ -6,6 +6,13 @@ pipeline {
         timeout(time: 1, unit: 'HOURS')  // 빌드 타임아웃 설정
     }
 
+    triggers {
+        gitlab {
+            triggerOnPush(false)  // 푸시 시 트리거 비활성화
+            triggerOnTag(true)    // 태그 시 트리거 활성화
+        }
+    }
+
     environment {
         DOCKER_HUB_CREDENTIALS = credentials('docker-hub-credentials') 
         EC2_SERVER = 'ec2-user@54.180.235.50'
@@ -19,7 +26,6 @@ pipeline {
                     extensions: [[$class: 'CloneOption', 
                         noTags: false, 
                         shallow: false, 
-                        depth: 1,  // 최신 커밋만 가져오기
                     ]],
                     userRemoteConfigs: [[
                         url: 'https://github.com/dayeonkimm/vita-gamemate.git',
