@@ -21,6 +21,7 @@ pipeline {
                         currentBuild.result = 'NOT_BUILT'
                         error("Not a tag push, skipping build")
                     }
+                    env.TAG_NAME = tagName
                     echo "Tag detected: ${tagName}"
                 }
             }
@@ -30,9 +31,8 @@ pipeline {
             steps {
                 script {
                     // 태그를 체크아웃
-                    def tagName = sh(script: "git describe --tags --abbrev=0", returnStdout: true).trim()
                     checkout([$class: 'GitSCM',
-                        branches: [[name: "refs/tags/${tagName}"]],
+                        branches: [[name: "refs/tags/${env.TAG_NAME}"]],
                         extensions: [[$class: 'CloneOption', 
                             noTags: false, 
                             shallow: false, 
@@ -74,9 +74,8 @@ pipeline {
         stage('Build and Push Docker Images') {
             steps {
                 script {
-                    def tagName = sh(script: "git describe --tags --abbrev=0", returnStdout: true).trim()
                     docker.withRegistry('https://index.docker.io/v1/', 'docker-hub-credentials') {
-                        def djangoImage = docker.build("dayeonkimm/vita-gamemate:${tagName}")
+                        def djangoImage = docker.build("dayeonkimm/vita-gamemate:${env.TAG_NAME}")
                         djangoImage.push()
                     }
                 }
@@ -90,7 +89,7 @@ pipeline {
                         ssh ${EC2_SERVER} '
                         cd /home/ec2-user/vita-gamemate
                         git fetch --all
-                        git checkout ${tagName}
+                        git checkout ${env.TAG_NAME}
                         docker-compose pull
                         docker-compose up -d --build
                         '
