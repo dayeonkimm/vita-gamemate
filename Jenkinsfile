@@ -14,7 +14,9 @@ pipeline {
     stages {
         stage('Checkout') {
             when {
-                buildingTag()  
+                expression { 
+                    return env.GIT_BRANCH.startsWith('origin/tags/release-')
+                }
             }
             steps {
                 checkout([$class: 'GitSCM',
@@ -32,7 +34,9 @@ pipeline {
 
         stage('Build and Push Docker Images') {
             when {
-                buildingTag()  
+                expression { 
+                    return env.GIT_BRANCH.startsWith('origin/tags/release-')
+                }
             }
             steps {
                 script {
@@ -47,7 +51,9 @@ pipeline {
 
         stage('Deploy to EC2') {
             when {
-                buildingTag()  
+                expression { 
+                    return env.GIT_BRANCH.startsWith('origin/tags/release-')
+                }
             }
             steps {
                 sshagent(credentials: ['ec2-ssh-key']) { 
