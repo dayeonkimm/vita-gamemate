@@ -9,15 +9,25 @@ pipeline {
     environment {
         DOCKER_HUB_CREDENTIALS = credentials('docker-hub-credentials') 
         EC2_SERVER = 'ec2-user@54.180.235.50'
+        TAG_NAME = sh(script: 'git describe --tags --abbrev=0 || true', returnStdout: true).trim()
+    }
     }
 
     stages {
-        stage('Checkout') {
-            when {
-                expression { 
-                    return env.GIT_BRANCH.startsWith('origin/tags/release-')
+        stage('Check Tag') {
+            steps {
+                script {
+                    def isTag = sh(script: 'git tag --points-at HEAD', returnStdout: true).trim()
+                    if (!isTag) {
+                        currentBuild.result = 'NOT_BUILT'
+                        error('Not a tag push, skipping build')
+                    }
                 }
             }
+        }
+
+    stages {
+        stage('Checkout') {
             steps {
                 checkout([$class: 'GitSCM',
                     branches: [[name: 'develop']],
@@ -33,16 +43,10 @@ pipeline {
         }
 
         stage('Build and Push Docker Images') {
-            when {
-                expression { 
-                    return env.GIT_BRANCH.startsWith('origin/tags/release-')
-                }
-            }
             steps {
                 script {
-                    def tagName = sh(script: 'git describe --tags --abbrev=0', returnStdout: true).trim()
                     docker.withRegistry('https://index.docker.io/v1/', 'docker-hub-credentials') {
-                        def djangoImage = docker.build("dayeonkimm/vita-gamemate:${tagName}")
+                        def djangoImage = docker.build("dayeonkimm/vita-gamemate:${TAG_NAME}")
                         djangoImage.push()
                     }
                 }
@@ -50,11 +54,6 @@ pipeline {
         }
 
         stage('Deploy to EC2') {
-            when {
-                expression { 
-                    return env.GIT_BRANCH.startsWith('origin/tags/release-')
-                }
-            }
             steps {
                 sshagent(credentials: ['ec2-ssh-key']) { 
                     sh """
