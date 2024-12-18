@@ -7,10 +7,10 @@ pipeline {
     }
 
     triggers {
-        gitlab {
-            triggerOnPush(false)  // 푸시 시 트리거 비활성화
-            triggerOnTag(true)    // 태그 시 트리거 활성화
-        }
+        gitlab (
+            triggerOnPush: false,  // 푸시 시 트리거 비활성화
+            triggerOnTag: true    // 태그 시 트리거 활성화
+        )
     }
 
     environment {
