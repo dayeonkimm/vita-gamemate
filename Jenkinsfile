@@ -59,7 +59,7 @@ pipeline {
                         ssh ${EC2_SERVER} '
                         cd /home/ec2-user/vita-gamemate
                         git fetch --tags
-                        git checkout ${env.GIT_TAG_NAME}
+                        git checkout ${env.GIT_TAG}
                         docker-compose pull
                         docker-compose up -d --build
                         '
