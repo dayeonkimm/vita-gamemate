@@ -15,13 +15,13 @@ pipeline {
         stage('Check Tag') {
             steps {
                 script {
-                    // git symbolic-ref를 사용하여 태그인지 확인
-                    def branchName = sh(script: 'git symbolic-ref HEAD', returnStdout: true).trim()
-                    if (!branchName.startsWith("refs/tags/")) {
+                    def tagName = sh(script: 'git describe --tags --abbrev=0', returnStdout: true).trim()
+                    
+                    if (tagName.isEmpty()) {
                         currentBuild.result = 'NOT_BUILT'
-                        error('Not a tag push, skipping build')
+                        error("Not a tag push, skipping build")
                     }
-                    echo "Tag detected: ${branchName}"
+                    echo "Tag detected: ${tagName}"
                 }
             }
         }
