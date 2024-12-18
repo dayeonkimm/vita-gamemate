@@ -35,7 +35,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 checkout([$class: 'GitSCM',
-                    branches: [[name: 'develop']],
+                    branches: [[name: 'refs/tags/*']],
                     extensions: [[$class: 'CloneOption', 
                         noTags: false, 
                         shallow: false, 
