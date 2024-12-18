@@ -15,22 +15,12 @@ pipeline {
         stage('Check Tag') {
             steps {
                 script {
-                    def isTag = sh(script: '''
-                        git fetch --tags
-                        BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD)
-                        if [[ $BRANCH_NAME == ref/tags/* ]]; then
-                            echo "Tag detected: $BRANCH_NAME"
-                            exit 0
-                        else
-                            echo "Not a tag push"
-                            exit 1
-                        fi
-                    ''', returnStatus: true) == 0
-                    
-                    if (!isTag) {
-                        currentBuild.result = 'NOT_BUILT'
-                        error('Not a tag push, skipping build')
-                    }
+            def ref = env.GIT_REF // 웹훅에서 전달된 ref 값
+            if (ref == null || !ref.startsWith("refs/tags/")) {
+                currentBuild.result = 'NOT_BUILT'
+                error("Not a tag push, skipping build")
+            }
+            echo "Tag detected: ${ref}"
                 }
             }
         }
@@ -54,6 +44,32 @@ pipeline {
             }
         }
 
+        stage('Check if Tag Branch is up-to-date with Develop') {
+            steps {
+                script {
+                    // develop 브랜치의 최신 상태를 가져오고, 태그 브랜치와 비교
+                    def isUpToDate = sh(script: '''
+                        git fetch origin
+                        # develop 브랜치와 태그 브랜치의 공통 커밋을 찾기
+                        merge_base=$(git merge-base origin/develop HEAD)
+                        # merge_base와 HEAD의 차이를 확인하여 커밋이 존재하면 병합되지 않은 변경 사항이 있다는 의미
+                        if [[ $(git log --oneline ${merge_base}..HEAD) ]]; then
+                            echo "There are commits in the tag branch that are not merged with develop."
+                            exit 1
+                        else
+                            echo "The tag branch is up-to-date with develop."
+                            exit 0
+                        fi
+                    ''', returnStatus: true) == 0
+
+                    if (!isUpToDate) {
+                        currentBuild.result = 'NOT_BUILT'
+                        error('Tag branch is not up-to-date with develop, skipping build')
+                    }
+                }
+            }
+        }
+
         stage('Build and Push Docker Images') {
             steps {
                 script {
@@ -73,8 +89,7 @@ pipeline {
                         ssh ${EC2_SERVER} '
                         cd /home/ec2-user/vita-gamemate
                         git fetch --all
-                        git checkout develop
-                        git pull origin develop
+                        git checkout ${tagName}
                         docker-compose pull
                         docker-compose up -d --build
                         '
