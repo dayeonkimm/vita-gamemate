@@ -9,14 +9,21 @@ pipeline {
     environment {
         DOCKER_HUB_CREDENTIALS = credentials('docker-hub-credentials') 
         EC2_SERVER = 'ec2-user@54.180.235.50'
-        TAG_NAME = sh(script: 'git describe --tags --abbrev=0 || true', returnStdout: true).trim()
     }
 
     stages {
         stage('Check Tag') {
             steps {
                 script {
-                    def isTag = sh(script: 'git tag --points-at HEAD', returnStdout: true).trim()
+                    def isTag = sh(script: '''
+                        BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD)
+                        if [[ $BRANCH_NAME == *"tags/"* ]]; then
+                            exit 0
+                        else
+                            exit 1
+                        fi
+                    ''', returnStatus: true) == 0
+                    
                     if (!isTag) {
                         currentBuild.result = 'NOT_BUILT'
                         error('Not a tag push, skipping build')
