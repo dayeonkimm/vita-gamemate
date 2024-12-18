@@ -13,9 +13,12 @@ pipeline {
 
     stages {
         stage('Checkout') {
+            when {
+                buildingTag()  
+            }
             steps {
                 checkout([$class: 'GitSCM',
-                    branches: [[name: '**']],
+                    branches: [[name: 'develop']],
                     extensions: [[$class: 'CloneOption', 
                         noTags: false, 
                         shallow: false, 
@@ -29,7 +32,7 @@ pipeline {
 
         stage('Build and Push Docker Images') {
             when {
-                tag "release-*"
+                buildingTag()  
             }
             steps {
                 script {
@@ -44,7 +47,7 @@ pipeline {
 
         stage('Deploy to EC2') {
             when {
-                tag "release-*"
+                buildingTag()  
             }
             steps {
                 sshagent(credentials: ['ec2-ssh-key']) { 
