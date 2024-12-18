@@ -4,6 +4,7 @@ pipeline {
     options {
         disableConcurrentBuilds()  // 동시 실행 제한
         timeout(time: 1, unit: 'HOURS')  // 빌드 타임아웃 설정
+        skipDefaultCheckout()
     }
 
     environment {
