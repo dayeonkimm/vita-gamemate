@@ -16,10 +16,13 @@ pipeline {
             steps {
                 script {
                     def isTag = sh(script: '''
+                        git fetch --tags
                         BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD)
-                        if [[ $BRANCH_NAME == *"tags/"* ]]; then
+                        if [[ $BRANCH_NAME == ref/tags/* ]]; then
+                            echo "Tag detected: $BRANCH_NAME"
                             exit 0
                         else
+                            echo "Not a tag push"
                             exit 1
                         fi
                     ''', returnStatus: true) == 0
@@ -34,24 +37,29 @@ pipeline {
 
         stage('Checkout') {
             steps {
-                checkout([$class: 'GitSCM',
-                    branches: [[name: 'refs/tags/*']],
-                    extensions: [[$class: 'CloneOption', 
-                        noTags: false, 
-                        shallow: false, 
-                    ]],
-                    userRemoteConfigs: [[
-                        url: 'https://github.com/dayeonkimm/vita-gamemate.git',
-                    ]]
-                ])
+                script {
+                    // 태그를 체크아웃
+                    def tagName = sh(script: "git describe --tags --abbrev=0", returnStdout: true).trim()
+                    checkout([$class: 'GitSCM',
+                        branches: [[name: "refs/tags/${tagName}"]],
+                        extensions: [[$class: 'CloneOption', 
+                            noTags: false, 
+                            shallow: false, 
+                        ]],
+                        userRemoteConfigs: [[
+                            url: 'https://github.com/dayeonkimm/vita-gamemate.git',
+                        ]]
+                    ])
+                }
             }
         }
 
         stage('Build and Push Docker Images') {
             steps {
                 script {
+                    def tagName = sh(script: "git describe --tags --abbrev=0", returnStdout: true).trim()
                     docker.withRegistry('https://index.docker.io/v1/', 'docker-hub-credentials') {
-                        def djangoImage = docker.build("dayeonkimm/vita-gamemate:${TAG_NAME}")
+                        def djangoImage = docker.build("dayeonkimm/vita-gamemate:${tagName}")
                         djangoImage.push()
                     }
                 }
