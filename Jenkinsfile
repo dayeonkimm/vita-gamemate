@@ -15,7 +15,13 @@ pipeline {
         stage('Check Tag') {
             steps {
                 script {
-                    def tagName = sh(script: 'git describe --tags --abbrev=0', returnStdout: true).trim()
+                    def tagName = sh(script: '''
+                        TAG=$(git tag --points-at HEAD)
+                        if [ -z "$TAG" ]; then
+                            exit 1
+                        fi
+                        echo $TAG
+                    ''', returnStdout: true).trim()
                     
                     if (tagName.isEmpty()) {
                         currentBuild.result = 'NOT_BUILT'
