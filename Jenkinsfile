@@ -11,7 +11,6 @@ pipeline {
         EC2_SERVER = 'ec2-user@54.180.235.50'
         TAG_NAME = sh(script: 'git describe --tags --abbrev=0 || true', returnStdout: true).trim()
     }
-    }
 
     stages {
         stage('Check Tag') {
@@ -26,7 +25,6 @@ pipeline {
             }
         }
 
-    stages {
         stage('Checkout') {
             steps {
                 checkout([$class: 'GitSCM',
