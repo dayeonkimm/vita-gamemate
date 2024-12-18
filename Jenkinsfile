@@ -37,13 +37,12 @@ pipeline {
         stage('Build and Push Docker Images') {
             when {
                 tag "release-*"
-                }
             }
             steps {
                 script {
                     def tagName = sh(script: 'git describe --tags --abbrev=0', returnStdout: true).trim()
                     docker.withRegistry('https://index.docker.io/v1/', 'docker-hub-credentials') {
-                        def djangoImage = docker.build("dayeonkimm/vita-gamemate:${tagName}", "-f Dockerfile .")
+                        def djangoImage = docker.build("dayeonkimm/vita-gamemate:${tagName}")
                         djangoImage.push()
                     }
                 }
