@@ -6,13 +6,6 @@ pipeline {
         timeout(time: 1, unit: 'HOURS')  // 빌드 타임아웃 설정
     }
 
-    triggers {
-        gitlab (
-            triggerOnPush: false,  // 푸시 시 트리거 비활성화
-            triggerOnTag: true    // 태그 시 트리거 활성화
-        )
-    }
-
     environment {
         DOCKER_HUB_CREDENTIALS = credentials('docker-hub-credentials') 
         EC2_SERVER = 'ec2-user@54.180.235.50'
