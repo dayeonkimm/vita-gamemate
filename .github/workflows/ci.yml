@@ -32,7 +32,7 @@ jobs:
       - name: Setup python environment
         uses: actions/setup-python@v2
         with:
-          python-version: 3.12.1
+          python-version: 3.12.8
 
       - name: Set timezone to KST
         run: |
