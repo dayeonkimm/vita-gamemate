@@ -4,7 +4,6 @@ pipeline {
     options {
         disableConcurrentBuilds()  // 동시 실행 제한
         timeout(time: 1, unit: 'HOURS')  // 빌드 타임아웃 설정
-        skipDefaultCheckout()
     }
 
     environment {
@@ -13,23 +12,18 @@ pipeline {
     }
 
     stages {
-        stage('Check Tag') {
+        stage('Check Tag Push') {
             steps {
                 script {
-                    def tagName = sh(script: '''
-                        TAG=$(git tag --points-at HEAD)
-                        if [ -z "$TAG" ]; then
-                            exit 1
-                        fi
-                        echo $TAG
-                    ''', returnStdout: true).trim()
+                    def gitRef = env.REF // 웹훅으로 전달된 ref 값
                     
-                    if (tagName.isEmpty()) {
+                    if (gitRef?.startsWith('refs/tags/')) {
+                        echo "This is a tag push: ${gitRef}"
+                    } else {
+                        echo "This is not a tag push: ${gitRef}, skipping build."
                         currentBuild.result = 'NOT_BUILT'
-                        error("Not a tag push, skipping build")
+                        error("Stopping the pipeline as this is not a tag push.")
                     }
-                    env.TAG_NAME = tagName
-                    echo "Tag detected: ${tagName}"
                 }
             }
         }
