@@ -9,39 +9,40 @@ pipeline {
     environment {
         DOCKER_HUB_CREDENTIALS = credentials('docker-hub-credentials') 
         EC2_SERVER = 'ec2-user@54.180.235.50'
+        TAG_NAME = sh(script: 'git describe --tags --abbrev=0 || true', returnStdout: true).trim()
     }
 
     stages {
-        stage('Check Environment Variables') {
-            steps {
-                script {
-                    // 현재 Jenkins 환경 변수를 모두 출력
-                    echo "All available environment variables:"
-                    sh 'printenv' // Linux 환경에서는 모든 환경 변수를 출력
-                }
-            }
-        }
+    //     stage('Check Environment Variables') {
+    //         steps {
+    //             script {
+    //                 // 현재 Jenkins 환경 변수를 모두 출력
+    //                 echo "All available environment variables:"
+    //                 sh 'printenv' // Linux 환경에서는 모든 환경 변수를 출력
+    //             }
+    //         }
+    //     }
 
-        stage('Parse GitHub Webhook Payload') {
-            steps {
-                script {
-                    // GitHub 웹훅 Payload 데이터를 파일로 저장 후 JSON 형식으로 읽음
-                    def payload = readJSON file: 'payload.json'
-                    def gitRef = payload.ref
+        // stage('Parse GitHub Webhook Payload') {
+        //     steps {
+        //         script {
+        //             // GitHub 웹훅 Payload 데이터를 파일로 저장 후 JSON 형식으로 읽음
+        //             def payload = readJSON file: 'payload.json'
+        //             def gitRef = payload.ref
                     
-                    echo "Git ref from payload: ${gitRef}"
+        //             echo "Git ref from payload: ${gitRef}"
 
-                    // 태그인지 확인
-                    if (gitRef?.startsWith('refs/tags/')) {
-                        echo "This is a tag push: ${gitRef}"
-                    } else {
-                        echo "This is not a tag push: ${gitRef}, skipping build."
-                        currentBuild.result = 'NOT_BUILT'
-                        error("Pipeline stopped: not a tag push.")
-                    }
-                }
-            }
-        }
+        //             // 태그인지 확인
+        //             if (gitRef?.startsWith('refs/tags/')) {
+        //                 echo "This is a tag push: ${gitRef}"
+        //             } else {
+        //                 echo "This is not a tag push: ${gitRef}, skipping build."
+        //                 currentBuild.result = 'NOT_BUILT'
+        //                 error("Pipeline stopped: not a tag push.")
+        //             }
+        //         }
+        //     }
+        // }
 
 
         stage('Checkout') {
