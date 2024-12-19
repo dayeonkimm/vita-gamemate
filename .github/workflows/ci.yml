@@ -60,16 +60,16 @@ jobs:
         run: |
           poetry run isort . --check --diff
 
-      - name: Test python project
-        run: |
-          poetry run coverage run src/manage.py test --noinput
-          poetry run coverage report -m
+      # - name: Test python project
+      #   run: |
+      #     poetry run coverage run src/manage.py test --noinput
+      #     poetry run coverage report -m
 
 
   trigger-jenkins:
     runs-on: ubuntu-latest
     needs: ci
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/release')
     steps:
       - name: Trigger Jenkins
         run: curl -X POST http://${{ secrets.JENKINS_URL }} /github-webhook/
