@@ -12,21 +12,37 @@ pipeline {
     }
 
     stages {
-        stage('Check Tag Push') {
+        stage('Check Environment Variables') {
             steps {
                 script {
-                    def gitRef = env.REF // 웹훅으로 전달된 ref 값
+                    // 현재 Jenkins 환경 변수를 모두 출력
+                    echo "All available environment variables:"
+                    sh 'printenv' // Linux 환경에서는 모든 환경 변수를 출력
+                }
+            }
+        }
+
+        stage('Parse GitHub Webhook Payload') {
+            steps {
+                script {
+                    // GitHub 웹훅 Payload 데이터를 파일로 저장 후 JSON 형식으로 읽음
+                    def payload = readJSON file: 'payload.json'
+                    def gitRef = payload.ref
                     
+                    echo "Git ref from payload: ${gitRef}"
+
+                    // 태그인지 확인
                     if (gitRef?.startsWith('refs/tags/')) {
                         echo "This is a tag push: ${gitRef}"
                     } else {
                         echo "This is not a tag push: ${gitRef}, skipping build."
                         currentBuild.result = 'NOT_BUILT'
-                        error("Stopping the pipeline as this is not a tag push.")
+                        error("Pipeline stopped: not a tag push.")
                     }
                 }
             }
         }
+
 
         stage('Checkout') {
             steps {
