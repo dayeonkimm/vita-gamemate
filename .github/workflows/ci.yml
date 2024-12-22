@@ -76,7 +76,7 @@ jobs:
           curl -X POST \
               -H "Content-Type: application/json" \
               -H "X-GitHub-Event: push" \
-              -d '{}' \
+              -d '{"ref": "${GITHUB_REF}", "repository": {"html_url": "https://github.com/${GITHUB_REPOSITORY}"}}' \
               http://${{ secrets.JENKINS_URL }}/github-webhook/
   
 
