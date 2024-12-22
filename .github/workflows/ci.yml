@@ -73,7 +73,8 @@ jobs:
     steps:
       - name: Trigger Jenkins
         run: |
-          -H "Content-Type: application/json" \
+          curl -X POST \
+              -H "Content-Type: application/json" \
               -H "X-GitHub-Event: push" \
               -d '{
                 "ref": "${{ github.ref }}",
