@@ -73,10 +73,18 @@ jobs:
     steps:
       - name: Trigger Jenkins
         run: |
-          curl -X POST \
-              -H "Content-Type: application/json" \
+          -H "Content-Type: application/json" \
               -H "X-GitHub-Event: push" \
-              -d '{"ref": "${GITHUB_REF}", "repository": {"html_url": "https://github.com/${GITHUB_REPOSITORY}"}}' \
+              -d '{
+                "ref": "${{ github.ref }}",
+                "repository": {
+                  "full_name": "${{ github.repository }}",
+                  "html_url": "https://github.com/${{ github.repository }}"
+                },
+                "pusher": {
+                  "name": "${{ github.actor }}"
+                }
+              }' \
               http://${{ secrets.JENKINS_URL }}/github-webhook/
   
 
