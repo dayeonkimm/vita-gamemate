@@ -72,21 +72,12 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/release')
     steps:
       - name: Trigger Jenkins
-        run: |
-          curl -X POST \
-              -H "Content-Type: application/json" \
-              -H "X-GitHub-Event: push" \
-              -d '{
-                "ref": "${{ github.ref }}",
-                "repository": {
-                  "full_name": "${{ github.repository }}",
-                  "html_url": "https://github.com/${{ github.repository }}"
-                },
-                "pusher": {
-                  "name": "${{ github.actor }}"
-                }
-              }' \
-              http://${{ secrets.JENKINS_URL }}/github-webhook/
+        uses: appleboy/jenkins-action@master
+        with:
+          url: ${{ secrets.JENKINS_URL }}
+          user: "dayeonkimm"
+          token: ${{ secrets.JENKINS_API_TOKEN }}
+          job: "vita_test"
   
 
 
